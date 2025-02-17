@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../lib/store';
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,14 @@ import { v4 as uuidv4 } from 'uuid';
 const Index = () => {
   const [name, setName] = useState('');
   const navigate = useNavigate();
-  const setCurrentUser = useChatStore((state) => state.setCurrentUser);
+  const { setCurrentUser, currentUser } = useChatStore();
+
+  useEffect(() => {
+    // If user is already logged in, redirect to chat
+    if (currentUser) {
+      navigate('/chat');
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
