@@ -3,15 +3,16 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, push, Database } from 'firebase/database';
 import { Message, User } from './types';
 
-// Replace these with your Firebase config
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://your-project.firebaseio.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID"
+  apiKey: "AIzaSyCcWUwbXc6r1M14CNfeojVDo7SyFylvrY8",
+  authDomain: "website-database-b5b62.firebaseapp.com",
+  databaseURL: "https://website-database-b5b62-default-rtdb.firebaseio.com",
+  projectId: "website-database-b5b62",
+  storageBucket: "website-database-b5b62.appspot.com",
+  messagingSenderId: "799535806005",
+  appId: "1:799535806005:web:63752dcd35f62feb55a37c",
+  measurementId: "G-4F1W5ZS53S"
 };
 
 let database: Database | null = null;
