@@ -4,38 +4,36 @@ import { motion } from 'framer-motion';
 import UserList from '@/components/UserList';
 import ChatWindow from '@/components/ChatWindow';
 import { useChatStore } from '@/lib/store';
-import { User } from '@/lib/types';
+import { updateUserStatus } from '@/lib/firebase';
 
 const Chat = () => {
   const { currentUser, updateOnlineUsers } = useChatStore();
 
   useEffect(() => {
-    // Simulated online users for now - will be replaced with Supabase
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        name: 'Alice',
-        isOnline: true,
-        lastSeen: new Date().toISOString()
-      },
-      {
-        id: '2',
-        name: 'Bob',
-        isOnline: true,
-        lastSeen: new Date().toISOString()
-      },
-      {
-        id: '3',
-        name: 'Charlie',
-        isOnline: false,
-        lastSeen: new Date(Date.now() - 3600000).toISOString()
-      }
-    ];
-
     if (currentUser) {
-      updateOnlineUsers([...mockUsers, currentUser]);
+      // Update user status when component mounts
+      updateUserStatus({
+        ...currentUser,
+        isOnline: true,
+        lastSeen: new Date().toISOString()
+      });
+
+      // Update user status when component unmounts
+      const handleBeforeUnload = () => {
+        updateUserStatus({
+          ...currentUser,
+          isOnline: false,
+          lastSeen: new Date().toISOString()
+        });
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        handleBeforeUnload();
+      };
     }
-  }, [currentUser, updateOnlineUsers]);
+  }, [currentUser]);
 
   return (
     <motion.div 

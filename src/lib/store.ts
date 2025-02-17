@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
+import { sendMessage, updateUserStatus, subscribeToMessages, subscribeToUsers } from './firebase';
 
 const loadUserFromStorage = (): User | null => {
   // Try to load from sessionStorage first
@@ -44,12 +45,15 @@ export const useChatStore = create<ChatState>()(
       currentUser: loadUserFromStorage(),
       messages: [],
       onlineUsers: [],
-      setCurrentUser: (user: User) => {
+      setCurrentUser: async (user: User) => {
         saveUserToStorage(user);
+        await updateUserStatus(user);
         set({ currentUser: user });
       },
-      addMessage: (message: Message) => 
-        set((state) => ({ messages: [...state.messages, message] })),
+      addMessage: async (message: Message) => {
+        await sendMessage(message);
+        set((state) => ({ messages: [...state.messages, message] }));
+      },
       updateOnlineUsers: (users: User[]) => set({ onlineUsers: users }),
     }),
     {
@@ -58,3 +62,14 @@ export const useChatStore = create<ChatState>()(
     }
   )
 );
+
+// Set up real-time subscriptions
+if (typeof window !== 'undefined') {
+  subscribeToMessages((messages) => {
+    useChatStore.setState({ messages });
+  });
+
+  subscribeToUsers((users) => {
+    useChatStore.setState({ onlineUsers: users });
+  });
+}
