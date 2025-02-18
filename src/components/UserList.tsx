@@ -15,6 +15,8 @@ const UserList = () => {
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  const activeUsers = onlineUsers.filter(user => user.isOnline);
+  
   return (
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
@@ -37,9 +39,14 @@ const UserList = () => {
             className="pl-9 w-full"
           />
         </div>
-        <p className="text-sm text-gray-500">
-          {filteredUsers.length} active now
-        </p>
+        <div className="flex justify-between items-center">
+          <p className="text-sm text-gray-500">
+            All Users ({onlineUsers.length - 1})
+          </p>
+          <p className="text-sm text-green-500">
+            {activeUsers.length - 1} active now
+          </p>
+        </div>
       </motion.div>
       
       <div className="divide-y divide-gray-100">

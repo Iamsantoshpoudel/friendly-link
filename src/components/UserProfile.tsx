@@ -13,15 +13,16 @@ const UserProfile = ({ user }: UserProfileProps) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-80 border-l border-gray-200 h-screen bg-white p-6 space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="w-80 border-l border-gray-200 h-screen bg-white p-6 space-y-6 shadow-lg"
     >
       <div className="text-center space-y-4">
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="w-24 h-24 rounded-full bg-black text-white text-3xl font-medium flex items-center justify-center mx-auto"
+          whileHover={{ scale: 1.05 }}
+          className="w-24 h-24 rounded-full bg-black text-white text-3xl font-medium flex items-center justify-center mx-auto cursor-pointer"
         >
           {user.name[0].toUpperCase()}
         </motion.div>
@@ -32,24 +33,24 @@ const UserProfile = ({ user }: UserProfileProps) => {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <motion.div whileHover={{ x: 5 }} className="flex items-center justify-between">
           <Button variant="ghost" size="sm" className="w-full justify-start">
             <UserCircle className="mr-2 h-4 w-4" />
             View Profile
           </Button>
-        </div>
-        <div className="flex items-center justify-between">
+        </motion.div>
+        <motion.div whileHover={{ x: 5 }} className="flex items-center justify-between">
           <Button variant="ghost" size="sm" className="w-full justify-start">
             <BellRing className="mr-2 h-4 w-4" />
             Notifications
           </Button>
-        </div>
-        <div className="flex items-center justify-between">
+        </motion.div>
+        <motion.div whileHover={{ x: 5 }} className="flex items-center justify-between">
           <Button variant="ghost" size="sm" className="w-full justify-start">
             <Search className="mr-2 h-4 w-4" />
             Search in Chat
           </Button>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
