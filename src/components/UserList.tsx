@@ -1,7 +1,7 @@
 
 import { useChatStore } from '@/lib/store';
 import UserBubble from './UserBubble';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
