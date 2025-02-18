@@ -19,10 +19,14 @@ const UserList = () => {
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="w-80 border-r border-gray-200 h-screen overflow-y-auto"
+      className="w-80 border-r border-gray-200 h-screen bg-white overflow-y-auto"
     >
-      <div className="p-4 border-b border-gray-200 space-y-4">
-        <h2 className="text-lg font-semibold">Online Users</h2>
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="p-4 border-b border-gray-200 space-y-4"
+      >
+        <h2 className="text-lg font-semibold">Messages</h2>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
@@ -36,16 +40,30 @@ const UserList = () => {
         <p className="text-sm text-gray-500">
           {filteredUsers.length} active now
         </p>
-      </div>
+      </motion.div>
       
       <div className="divide-y divide-gray-100">
-        {filteredUsers.map(user => (
-          <UserBubble key={user.id} user={user} />
-        ))}
+        <AnimatePresence>
+          {filteredUsers.map((user, index) => (
+            <motion.div
+              key={user.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <UserBubble key={user.id} user={user} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
         {filteredUsers.length === 0 && searchQuery && (
-          <div className="p-4 text-center text-gray-500">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="p-4 text-center text-gray-500"
+          >
             No users found matching "{searchQuery}"
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>
