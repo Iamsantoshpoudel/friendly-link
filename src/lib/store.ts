@@ -43,6 +43,7 @@ export const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
       currentUser: loadUserFromStorage(),
+      selectedUser: null,
       messages: [],
       onlineUsers: [],
       setCurrentUser: async (user: User) => {
@@ -52,10 +53,10 @@ export const useChatStore = create<ChatState>()(
           set({ currentUser: user });
         } catch (error) {
           console.error('Error updating user status:', error);
-          // Still set the user in local state even if Firebase fails
           set({ currentUser: user });
         }
       },
+      setSelectedUser: (user: User | null) => set({ selectedUser: user }),
       addMessage: async (message: Message) => {
         try {
           await sendMessage(message);

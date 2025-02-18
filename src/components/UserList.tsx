@@ -7,7 +7,7 @@ import { Search } from 'lucide-react';
 import { useState } from 'react';
 
 const UserList = () => {
-  const { onlineUsers, currentUser } = useChatStore();
+  const { onlineUsers, currentUser, setSelectedUser } = useChatStore();
   const [searchQuery, setSearchQuery] = useState('');
   
   const filteredUsers = onlineUsers.filter(user => 
@@ -52,7 +52,11 @@ const UserList = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 0.1 }}
             >
-              <UserBubble key={user.id} user={user} />
+              <UserBubble 
+                key={user.id} 
+                user={user} 
+                onClick={() => setSelectedUser(user)}
+              />
             </motion.div>
           ))}
         </AnimatePresence>

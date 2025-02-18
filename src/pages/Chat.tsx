@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import UserList from '@/components/UserList';
 import ChatWindow from '@/components/ChatWindow';
+import UserProfile from '@/components/UserProfile';
 import { useChatStore } from '@/lib/store';
 import { updateUserStatus } from '@/lib/firebase';
 
@@ -43,6 +44,7 @@ const Chat = () => {
     >
       <UserList />
       <ChatWindow />
+      <UserProfile user={currentUser} />
     </motion.div>
   );
 };
