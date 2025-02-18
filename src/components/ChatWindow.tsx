@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('');
-  const { messages, currentUser, addMessage } = useChatStore();
+  const { messages, currentUser, selectedUser, addMessage } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -23,7 +23,7 @@ const ChatWindow = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() && currentUser) {
+    if (newMessage.trim() && currentUser && selectedUser) {
       const message: Message = {
         id: uuidv4(),
         senderId: currentUser.id,
@@ -36,11 +36,37 @@ const ChatWindow = () => {
     }
   };
 
+  const filteredMessages = messages.filter(
+    msg => msg.senderId === currentUser?.id || msg.senderId === selectedUser?.id
+  );
+
+  if (!selectedUser) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Select a user to start chatting</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-gray-50">
+      <div className="p-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
+            {selectedUser.name[0].toUpperCase()}
+          </div>
+          <div>
+            <h3 className="font-medium">{selectedUser.name}</h3>
+            <p className="text-sm text-gray-500">
+              {selectedUser.isOnline ? 'Active now' : 'Offline'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 p-4 overflow-y-auto">
         <AnimatePresence initial={false}>
-          {messages.map((message) => (
+          {filteredMessages.map((message) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 20 }}
