@@ -2,6 +2,7 @@
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useChatStore } from '@/lib/store';
 
 interface UserBubbleProps {
   user: User;
@@ -10,13 +11,34 @@ interface UserBubbleProps {
 }
 
 const UserBubble = ({ user, isSelected, onClick }: UserBubbleProps) => {
+  const { messages, currentUser } = useChatStore();
+
+  // Get the last message from this user
+  const lastMessage = messages
+    .filter(msg => 
+      (msg.senderId === user.id && msg.receiverId === currentUser?.id) ||
+      (msg.senderId === currentUser?.id && msg.receiverId === user.id)
+    )
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
+  // Calculate time difference
+  const getTimeAgo = (timestamp: string) => {
+    const diff = new Date().getTime() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
+  };
+
   return (
     <motion.div 
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex items-center p-4 space-x-3 rounded-lg transition-all duration-200 cursor-pointer",
+        "flex items-center p-4 space-x-3 transition-all duration-200 cursor-pointer",
         isSelected ? "bg-gray-100" : "hover:bg-gray-50"
       )}
     >
@@ -41,11 +63,28 @@ const UserBubble = ({ user, isSelected, onClick }: UserBubbleProps) => {
       </div>
       
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{user.name}</p>
-        <p className="text-sm text-gray-500">
-          {user.isOnline ? 'Active now' : 'Offline'}
-        </p>
+        <div className="flex justify-between items-start">
+          <p className="font-medium text-gray-900 truncate">{user.name}</p>
+          {lastMessage && (
+            <span className="text-xs text-gray-500">
+              {getTimeAgo(lastMessage.timestamp)}
+            </span>
+          )}
+        </div>
+        {lastMessage && (
+          <p className="text-sm text-gray-500 truncate">
+            {lastMessage.senderId === currentUser?.id ? 'You: ' : ''}{lastMessage.content}
+          </p>
+        )}
       </div>
+
+      {!isSelected && lastMessage && !lastMessage.isRead && lastMessage.senderId === user.id && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0"
+        />
+      )}
     </motion.div>
   );
 };
