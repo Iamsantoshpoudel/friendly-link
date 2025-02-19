@@ -13,6 +13,13 @@ interface UserBubbleProps {
 const UserBubble = ({ user, isSelected, onClick }: UserBubbleProps) => {
   const { messages, currentUser } = useChatStore();
 
+  // Get unread messages from this user
+  const unreadMessages = messages.filter(msg => 
+    msg.senderId === user.id && 
+    msg.receiverId === currentUser?.id && 
+    !msg.isRead
+  );
+
   // Get the last message from this user
   const lastMessage = messages
     .filter(msg => 
@@ -78,12 +85,14 @@ const UserBubble = ({ user, isSelected, onClick }: UserBubbleProps) => {
         )}
       </div>
 
-      {!isSelected && lastMessage && !lastMessage.isRead && lastMessage.senderId === user.id && (
+      {!isSelected && unreadMessages.length > 0 && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0"
-        />
+          className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs font-medium flex-shrink-0"
+        >
+          {unreadMessages.length}
+        </motion.div>
       )}
     </motion.div>
   );

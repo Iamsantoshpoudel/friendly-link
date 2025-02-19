@@ -56,11 +56,31 @@ export const useChatStore = create<ChatState>()(
           set({ currentUser: user });
         }
       },
-      setSelectedUser: (user: User | null) => set({ selectedUser: user }),
+      setSelectedUser: (user: User | null) => {
+        set((state) => {
+          // Mark all messages from this user as read when selecting them
+          if (user) {
+            const updatedMessages = state.messages.map(msg => 
+              msg.senderId === user.id && msg.receiverId === state.currentUser?.id
+                ? { ...msg, isRead: true }
+                : msg
+            );
+            return { selectedUser: user, messages: updatedMessages };
+          }
+          return { selectedUser: user };
+        });
+      },
       addMessage: async (message: Message) => {
         try {
           await sendMessage(message);
-          set((state) => ({ messages: [...state.messages, message] }));
+          set((state) => {
+            // Ensure we don't add duplicate messages by checking ID
+            const messageExists = state.messages.some(msg => msg.id === message.id);
+            if (!messageExists) {
+              return { messages: [...state.messages, message] };
+            }
+            return state;
+          });
         } catch (error) {
           console.error('Error sending message:', error);
         }
