@@ -61,6 +61,10 @@ class WebRTCService {
 
     peerConnection.onconnectionstatechange = () => {
       console.log('Connection state changed:', peerConnection.connectionState);
+      if (peerConnection.connectionState === 'failed') {
+        console.log('Connection failed, attempting to reconnect...');
+        this.initiateConnection(remoteUserId);
+      }
     };
 
     peerConnection.ondatachannel = (event) => {
@@ -73,11 +77,28 @@ class WebRTCService {
         this.peers.set(remoteUserId, { ...peerData, dataChannel });
       }
     };
+
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', peerConnection.iceConnectionState);
+    };
+
+    peerConnection.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', peerConnection.iceGatheringState);
+    };
+
+    peerConnection.onsignalingstatechange = () => {
+      console.log('Signaling state:', peerConnection.signalingState);
+    };
   }
 
   private setupDataChannel(dataChannel: RTCDataChannel): void {
     dataChannel.onmessage = this.handleDataChannelMessage;
-    dataChannel.onopen = () => console.log('Data channel opened');
+    dataChannel.onopen = () => {
+      console.log('Data channel opened');
+      if (dataChannel.label === 'messageChannel') {
+        console.log('Message channel is ready for communication');
+      }
+    };
     dataChannel.onclose = () => console.log('Data channel closed');
     dataChannel.onerror = (error) => console.error('Data channel error:', error);
   }
@@ -99,9 +120,17 @@ class WebRTCService {
   }
 
   async sendMessage(recipientId: string, message: any): Promise<void> {
-    console.log('Sending message to:', recipientId, message);
+    console.log('Attempting to send message to:', recipientId, message);
     const peer = this.peers.get(recipientId);
-    if (peer?.dataChannel?.readyState === 'open') {
+    
+    if (!peer) {
+      console.log('No peer connection found, creating new connection...');
+      await this.initiateConnection(recipientId);
+      throw new Error('New connection initiated, please try sending again');
+    }
+
+    if (peer.dataChannel?.readyState === 'open') {
+      console.log('Sending message through data channel');
       peer.dataChannel.send(JSON.stringify(message));
     } else {
       console.error('Data channel not ready. State:', peer?.dataChannel?.readyState);
@@ -114,19 +143,29 @@ class WebRTCService {
   private async sendSignalingMessage(message: any): Promise<void> {
     console.log('Sending signaling message:', message);
     try {
-      await fetch('/api/signaling', {
+      const response = await fetch('/api/signaling', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(message),
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      console.log('Signaling message sent successfully');
     } catch (error) {
       console.error('Error sending signaling message:', error);
+      throw error;
     }
   }
 
   async handleIncomingSignalingMessage(message: any): Promise<void> {
     console.log('Handling incoming signaling message:', message);
-    if (!this.localUserId) return;
+    if (!this.localUserId) {
+      console.error('Local user ID not set');
+      return;
+    }
 
     switch (message.type) {
       case 'offer':
@@ -138,30 +177,45 @@ class WebRTCService {
       case 'ice-candidate':
         await this.handleIceCandidate(message);
         break;
+      default:
+        console.log('Unknown message type:', message.type);
     }
   }
 
   private async handleOffer(message: any): Promise<void> {
     console.log('Handling offer from:', message.from);
     const peerConnection = await this.createPeerConnection(message.from);
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
     
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
+    try {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
 
-    await this.sendSignalingMessage({
-      type: 'answer',
-      answer,
-      from: this.localUserId,
-      to: message.from,
-    });
+      await this.sendSignalingMessage({
+        type: 'answer',
+        answer,
+        from: this.localUserId,
+        to: message.from,
+      });
+    } catch (error) {
+      console.error('Error handling offer:', error);
+      throw error;
+    }
   }
 
   private async handleAnswer(message: any): Promise<void> {
     console.log('Handling answer from:', message.from);
     const peer = this.peers.get(message.from);
     if (peer?.connection) {
-      await peer.connection.setRemoteDescription(new RTCSessionDescription(message.answer));
+      try {
+        await peer.connection.setRemoteDescription(new RTCSessionDescription(message.answer));
+        console.log('Remote description set successfully');
+      } catch (error) {
+        console.error('Error setting remote description:', error);
+        throw error;
+      }
+    } else {
+      console.error('No peer connection found for:', message.from);
     }
   }
 
@@ -169,22 +223,41 @@ class WebRTCService {
     console.log('Handling ICE candidate from:', message.from);
     const peer = this.peers.get(message.from);
     if (peer?.connection) {
-      await peer.connection.addIceCandidate(new RTCIceCandidate(message.candidate));
+      try {
+        await peer.connection.addIceCandidate(new RTCIceCandidate(message.candidate));
+        console.log('ICE candidate added successfully');
+      } catch (error) {
+        console.error('Error adding ICE candidate:', error);
+        throw error;
+      }
+    } else {
+      console.error('No peer connection found for:', message.from);
     }
   }
 
   async initiateConnection(remoteUserId: string): Promise<void> {
     console.log('Initiating connection with:', remoteUserId);
-    const peerConnection = await this.createPeerConnection(remoteUserId);
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
+    if (!this.localUserId) {
+      throw new Error('Local user ID not set');
+    }
 
-    await this.sendSignalingMessage({
-      type: 'offer',
-      offer,
-      from: this.localUserId,
-      to: remoteUserId,
-    });
+    try {
+      const peerConnection = await this.createPeerConnection(remoteUserId);
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      await this.sendSignalingMessage({
+        type: 'offer',
+        offer,
+        from: this.localUserId,
+        to: remoteUserId,
+      });
+      
+      console.log('Connection initiation completed');
+    } catch (error) {
+      console.error('Error initiating connection:', error);
+      throw error;
+    }
   }
 }
 
