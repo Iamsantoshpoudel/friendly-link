@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
@@ -63,32 +64,24 @@ export const useChatStore = create<ChatState>()(
           // Initialize WebRTC connection when selecting a user
           await webRTCService.initiateConnection(user.id);
         }
-        
-        set((state) => {
-          if (user) {
-            const updatedMessages = state.messages.map(msg => 
-              msg.senderId === user.id && msg.receiverId === state.currentUser?.id
-                ? { ...msg, isRead: true }
-                : msg
-            );
-            return { selectedUser: user, messages: updatedMessages };
-          }
-          return { selectedUser: user };
-        });
+        set({ selectedUser: user });
       },
       addMessage: async (message: Message) => {
         const state = get();
         if (state.selectedUser) {
           try {
-            // Send message through WebRTC instead of Firebase
-            await webRTCService.sendMessage(state.selectedUser.id, message);
-            set((state) => {
-              const messageExists = state.messages.some(msg => msg.id === message.id);
-              if (!messageExists) {
-                return { messages: [...state.messages, message] };
-              }
-              return state;
-            });
+            // Only add message to state if we're the sender
+            // Messages from the receiver will come through WebRTC
+            if (message.senderId === state.currentUser?.id) {
+              set((state) => {
+                const messageExists = state.messages.some(msg => msg.id === message.id);
+                if (!messageExists) {
+                  webRTCService.sendMessage(state.selectedUser!.id, message);
+                  return { messages: [...state.messages, message] };
+                }
+                return state;
+              });
+            }
           } catch (error) {
             console.error('Error sending message:', error);
           }
@@ -105,12 +98,17 @@ export const useChatStore = create<ChatState>()(
 
 // Set up WebRTC message handler
 webRTCService.setMessageCallback((message: Message) => {
-  useChatStore.setState((state) => ({
-    messages: [...state.messages, message]
-  }));
+  // Only add received messages to state
+  useChatStore.setState((state) => {
+    const messageExists = state.messages.some(msg => msg.id === message.id);
+    if (!messageExists) {
+      return { messages: [...state.messages, message] };
+    }
+    return state;
+  });
 });
 
-// Only subscribe to user status updates from Firebase
+// Subscribe to user status updates
 if (typeof window !== 'undefined') {
   subscribeToUsers((users) => {
     useChatStore.setState({ onlineUsers: users });
