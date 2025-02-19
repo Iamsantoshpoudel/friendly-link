@@ -27,6 +27,7 @@ const ChatWindow = () => {
       const message: Message = {
         id: uuidv4(),
         senderId: currentUser.id,
+        receiverId: selectedUser.id,  // Add the receiverId here
         content: newMessage.trim(),
         timestamp: new Date().toISOString(),
         isRead: false
