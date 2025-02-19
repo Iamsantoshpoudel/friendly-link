@@ -27,7 +27,7 @@ const ChatWindow = () => {
       const message: Message = {
         id: uuidv4(),
         senderId: currentUser.id,
-        receiverId: selectedUser.id,  // Add the receiverId here
+        receiverId: selectedUser.id,
         content: newMessage.trim(),
         timestamp: new Date().toISOString(),
         isRead: false
@@ -37,13 +37,20 @@ const ChatWindow = () => {
     }
   };
 
-  // Filter messages to show only the conversation between current user and selected user
-  const filteredMessages = messages.filter(
-    msg => (msg.senderId === currentUser?.id && msg.receiverId === selectedUser?.id) ||
-           (msg.senderId === selectedUser?.id && msg.receiverId === currentUser?.id)
-  );
+  // Strict filtering to ensure messages are only visible to participants
+  const filteredMessages = messages.filter(msg => {
+    const isParticipant = 
+      (msg.senderId === currentUser?.id && msg.receiverId === selectedUser?.id) ||
+      (msg.senderId === selectedUser?.id && msg.receiverId === currentUser?.id);
+    
+    // Only return messages where the current user is either sender or receiver
+    return isParticipant && (
+      msg.senderId === currentUser?.id || 
+      msg.receiverId === currentUser?.id
+    );
+  });
 
-  if (!selectedUser) {
+  if (!selectedUser || !currentUser) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
         <p className="text-gray-500">Select a user to start chatting</p>
@@ -76,9 +83,9 @@ const ChatWindow = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className={`flex ${message.senderId === currentUser?.id ? 'justify-end' : 'justify-start'} mb-4 items-end space-x-2`}
+              className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'} mb-4 items-end space-x-2`}
             >
-              {message.senderId !== currentUser?.id && (
+              {message.senderId !== currentUser.id && (
                 <div className="w-8 h-8 rounded-full bg-black text-white flex-shrink-0 flex items-center justify-center">
                   {selectedUser.name[0].toUpperCase()}
                 </div>
@@ -86,7 +93,7 @@ const ChatWindow = () => {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                  message.senderId === currentUser?.id
+                  message.senderId === currentUser.id
                     ? 'bg-black text-white ml-auto'
                     : 'bg-white text-gray-900 border border-gray-200'
                 }`}
@@ -96,7 +103,7 @@ const ChatWindow = () => {
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </motion.div>
-              {message.senderId === currentUser?.id && (
+              {message.senderId === currentUser.id && (
                 <div className="w-8 h-8 rounded-full bg-black text-white flex-shrink-0 flex items-center justify-center">
                   {currentUser.name[0].toUpperCase()}
                 </div>
