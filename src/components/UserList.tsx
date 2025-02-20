@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { Input } from './ui/input';
+import Logo from "../assets/img/Logo.svg";
 
 const UserList = () => {
   const { onlineUsers, currentUser, selectedUser, setSelectedUser, messages } = useChatStore();
@@ -59,7 +60,7 @@ const UserList = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Messages</h2>
           <motion.img 
-            src="/logo.png" 
+            src={Logo} 
             alt="Logo" 
             className="h-8 w-8 cursor-pointer hover:scale-105 transition-transform"
             onClick={() => setSelectedUser(currentUser)}
