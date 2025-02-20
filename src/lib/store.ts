@@ -46,7 +46,7 @@ export const useChatStore = create<ChatState>()(
       selectedUser: null,
       messages: [],
       onlineUsers: [],
-      lastActiveChatId: null, // New field to track last active chat
+      lastActiveChatId: null,
       setCurrentUser: async (user: User) => {
         try {
           saveUserToStorage(user);
@@ -67,7 +67,11 @@ export const useChatStore = create<ChatState>()(
                 : msg
             );
             // Store the last active chat ID
-            return { selectedUser: user, messages: updatedMessages, lastActiveChatId: user.id };
+            return { 
+              selectedUser: user, 
+              messages: updatedMessages, 
+              lastActiveChatId: user.id === state.currentUser?.id ? null : user.id 
+            };
           }
           return { selectedUser: user };
         });
@@ -93,7 +97,7 @@ export const useChatStore = create<ChatState>()(
       name: 'chat-storage',
       partialize: (state) => ({ 
         messages: state.messages,
-        lastActiveChatId: state.lastActiveChatId // Include lastActiveChatId in persistence
+        lastActiveChatId: state.lastActiveChatId
       }),
     }
   )
