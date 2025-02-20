@@ -20,6 +20,7 @@ export interface ChatState {
   selectedUser: User | null;
   messages: Message[];
   onlineUsers: User[];
+  lastActiveChatId: string | null;
   setCurrentUser: (user: User) => void;
   setSelectedUser: (user: User | null) => void;
   addMessage: (message: Message) => void;

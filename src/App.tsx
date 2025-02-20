@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useEffect } from "react-router-dom";
 import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
@@ -13,6 +13,14 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const currentUser = useChatStore((state) => state.currentUser);
+  const lastActiveChatId = useChatStore((state) => state.lastActiveChatId);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser && lastActiveChatId) {
+      navigate('/chat');
+    }
+  }, [currentUser, lastActiveChatId, navigate]);
   
   if (!currentUser) {
     return <Navigate to="/" replace />;
