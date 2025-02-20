@@ -10,14 +10,24 @@ import { v4 as uuidv4 } from 'uuid';
 const Index = () => {
   const [name, setName] = useState('');
   const navigate = useNavigate();
-  const { setCurrentUser, currentUser } = useChatStore();
+  const { setCurrentUser, currentUser, lastActiveChatId, setSelectedUser, onlineUsers } = useChatStore();
 
   useEffect(() => {
-    // If user is already logged in, redirect to chat
-    if (currentUser) {
+    // If user is already logged in and has a last active chat
+    if (currentUser && lastActiveChatId) {
+      // Find the last active user from online users
+      const lastActiveUser = onlineUsers.find(user => user.id === lastActiveChatId);
+      if (lastActiveUser) {
+        // Set the selected user before navigation
+        setSelectedUser(lastActiveUser);
+      }
+      // Navigate to chat
+      navigate('/chat', { replace: true });
+    } else if (currentUser) {
+      // If just logged in without last active chat
       navigate('/chat');
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, lastActiveChatId, navigate, onlineUsers, setSelectedUser]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +39,7 @@ const Index = () => {
         lastSeen: new Date().toISOString()
       };
       setCurrentUser(user);
-      navigate('/chat');
+      // Navigation will be handled by the useEffect
     }
   };
 
