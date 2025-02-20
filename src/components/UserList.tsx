@@ -1,81 +1,133 @@
 
 import { useChatStore } from '@/lib/store';
-import UserBubble from './UserBubble';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Input } from '@/components/ui/input';
+import { Message } from '@/lib/types';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
+import { Input } from './ui/input';
 
 const UserList = () => {
-  const { onlineUsers, currentUser, setSelectedUser } = useChatStore();
+  const { onlineUsers, currentUser, selectedUser, setSelectedUser, messages } = useChatStore();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const filteredUsers = onlineUsers.filter(user => 
-    user.id !== currentUser?.id && 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  const activeUsers = onlineUsers.filter(user => user.isOnline);
-  
+
+  // Filter users and sort by latest message
+  const filteredAndSortedUsers = onlineUsers
+    .filter(user => 
+      user.id !== currentUser?.id && 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const aLastMessage = messages
+        .filter(m => (m.senderId === a.id && m.receiverId === currentUser?.id) || 
+                     (m.senderId === currentUser?.id && m.receiverId === a.id))
+        .sort((m1, m2) => new Date(m2.timestamp).getTime() - new Date(m1.timestamp).getTime())[0];
+      
+      const bLastMessage = messages
+        .filter(m => (m.senderId === b.id && m.receiverId === currentUser?.id) || 
+                     (m.senderId === currentUser?.id && m.receiverId === b.id))
+        .sort((m1, m2) => new Date(m2.timestamp).getTime() - new Date(m1.timestamp).getTime())[0];
+
+      if (!aLastMessage && !bLastMessage) return 0;
+      if (!aLastMessage) return 1;
+      if (!bLastMessage) return -1;
+      
+      return new Date(bLastMessage.timestamp).getTime() - new Date(aLastMessage.timestamp).getTime();
+    });
+
+  const getLastMessage = (userId: string): Message | undefined => {
+    return messages
+      .filter(m => (m.senderId === userId && m.receiverId === currentUser?.id) || 
+                   (m.senderId === currentUser?.id && m.receiverId === userId))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+  };
+
+  const getUnreadCount = (userId: string): number => {
+    return messages.filter(m => 
+      m.senderId === userId && 
+      m.receiverId === currentUser?.id && 
+      !m.isRead
+    ).length;
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="w-80 border-r border-gray-200 h-screen bg-white overflow-y-auto"
+      className="w-80 border-r border-gray-200 h-screen bg-white overflow-hidden flex flex-col"
     >
-      <motion.div 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="p-4 border-b border-gray-200 space-y-4"
-      >
+      <div className="p-4 border-b border-gray-200 space-y-4">
         <h2 className="text-lg font-semibold">Messages</h2>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-full"
+            className="pl-9 w-full bg-gray-50"
           />
         </div>
-        <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            All Users ({onlineUsers.length - 1})
-          </p>
-          <p className="text-sm text-green-500">
-            {activeUsers.length - 1} active now
-          </p>
-        </div>
-      </motion.div>
-      
-      <div className="divide-y divide-gray-100">
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
         <AnimatePresence>
-          {filteredUsers.map((user, index) => (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <UserBubble 
-                key={user.id} 
-                user={user} 
+          {filteredAndSortedUsers.map((user) => {
+            const lastMessage = getLastMessage(user.id);
+            const unreadCount = getUnreadCount(user.id);
+            
+            return (
+              <motion.div
+                key={user.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 onClick={() => setSelectedUser(user)}
-              />
-            </motion.div>
-          ))}
+                className={`p-4 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
+                  selectedUser?.id === user.id ? 'bg-gray-50' : ''
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                      {user.name[0].toUpperCase()}
+                    </div>
+                    {user.isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <p className={`font-medium truncate ${unreadCount > 0 ? 'text-black' : 'text-gray-900'}`}>
+                        {user.name}
+                      </p>
+                      {lastMessage && (
+                        <span className="text-xs text-gray-500">
+                          {new Date(lastMessage.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    {lastMessage && (
+                      <p className={`text-sm truncate ${
+                        unreadCount > 0 ? 'font-medium text-gray-900' : 'text-gray-500'
+                      }`}>
+                        {lastMessage.senderId === currentUser?.id ? 'You: ' : ''}
+                        {lastMessage.content}
+                      </p>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+                      {unreadCount}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
-        {filteredUsers.length === 0 && searchQuery && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="p-4 text-center text-gray-500"
-          >
-            No users found matching "{searchQuery}"
-          </motion.div>
-        )}
       </div>
     </motion.div>
   );
