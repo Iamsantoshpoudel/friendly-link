@@ -6,13 +6,12 @@ import ChatWindow from '@/components/ChatWindow';
 import UserProfile from '@/components/UserProfile';
 import { useChatStore } from '@/lib/store';
 import { updateUserStatus } from '@/lib/firebase';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Chat = () => {
-  const { currentUser } = useChatStore();
+  const { currentUser, selectedUser } = useChatStore();
   const [showUserList, setShowUserList] = useState(true);
-  const [showProfile, setShowProfile] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -82,28 +81,15 @@ const Chat = () => {
         <ChatWindow />
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-0 top-4 z-50"
-        onClick={() => setShowProfile(!showProfile)}
-      >
-        <ChevronRight className={`w-6 h-6 transition-transform ${showProfile ? 'rotate-180' : ''}`} />
-      </Button>
-
-      <AnimatePresence>
-        {showProfile && (
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute right-0 top-0 h-full"
-          >
-            <UserProfile user={currentUser} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selectedUser && (
+        <motion.div
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          className="flex-shrink-0 relative"
+        >
+          <UserProfile user={currentUser} />
+        </motion.div>
+      )}
     </motion.div>
   );
 };
