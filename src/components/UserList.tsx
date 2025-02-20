@@ -56,7 +56,17 @@ const UserList = () => {
       className="w-80 border-r border-gray-200 h-screen bg-white overflow-hidden flex flex-col"
     >
       <div className="p-4 border-b border-gray-200 space-y-4">
-        <h2 className="text-lg font-semibold">Messages</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Messages</h2>
+          <motion.img 
+            src="/logo.png" 
+            alt="Logo" 
+            className="h-8 w-8 cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => setSelectedUser(currentUser)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          />
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input

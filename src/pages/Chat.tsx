@@ -87,7 +87,7 @@ const Chat = () => {
           animate={{ x: 0 }}
           className="flex-shrink-0 relative"
         >
-          <UserProfile user={currentUser} />
+          <UserProfile user={selectedUser} />
         </motion.div>
       )}
     </motion.div>

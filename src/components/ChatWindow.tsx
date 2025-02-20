@@ -42,10 +42,7 @@ const ChatWindow = () => {
       (msg.senderId === currentUser?.id && msg.receiverId === selectedUser?.id) ||
       (msg.senderId === selectedUser?.id && msg.receiverId === currentUser?.id);
     
-    return isParticipant && (
-      msg.senderId === currentUser?.id || 
-      msg.receiverId === currentUser?.id
-    );
+    return isParticipant;
   });
 
   if (!selectedUser || !currentUser) {
