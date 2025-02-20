@@ -2,8 +2,7 @@
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
-import { updateUserStatus, subscribeToUsers } from './firebase';
-import { webRTCService } from './webrtc';
+import { sendMessage, updateUserStatus, subscribeToMessages, subscribeToUsers } from './firebase';
 
 const loadUserFromStorage = (): User | null => {
   // Try to load from sessionStorage first
@@ -42,7 +41,7 @@ const saveUserToStorage = (user: User | null) => {
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       currentUser: loadUserFromStorage(),
       selectedUser: null,
       messages: [],
@@ -51,40 +50,39 @@ export const useChatStore = create<ChatState>()(
         try {
           saveUserToStorage(user);
           await updateUserStatus(user);
-          await webRTCService.initializePeer(user.id);
           set({ currentUser: user });
         } catch (error) {
           console.error('Error updating user status:', error);
           set({ currentUser: user });
         }
       },
-      setSelectedUser: async (user: User | null) => {
-        const currentState = get();
-        if (user && currentState.currentUser) {
-          // Initialize WebRTC connection when selecting a user
-          await webRTCService.initiateConnection(user.id);
-        }
-        set({ selectedUser: user });
+      setSelectedUser: (user: User | null) => {
+        set((state) => {
+          // Mark all messages from this user as read when selecting them
+          if (user) {
+            const updatedMessages = state.messages.map(msg => 
+              msg.senderId === user.id && msg.receiverId === state.currentUser?.id
+                ? { ...msg, isRead: true }
+                : msg
+            );
+            return { selectedUser: user, messages: updatedMessages };
+          }
+          return { selectedUser: user };
+        });
       },
       addMessage: async (message: Message) => {
-        const state = get();
-        if (state.selectedUser) {
-          try {
-            // Only add message to state if we're the sender
-            // Messages from the receiver will come through WebRTC
-            if (message.senderId === state.currentUser?.id) {
-              set((state) => {
-                const messageExists = state.messages.some(msg => msg.id === message.id);
-                if (!messageExists) {
-                  webRTCService.sendMessage(state.selectedUser!.id, message);
-                  return { messages: [...state.messages, message] };
-                }
-                return state;
-              });
+        try {
+          await sendMessage(message);
+          set((state) => {
+            // Ensure we don't add duplicate messages by checking ID
+            const messageExists = state.messages.some(msg => msg.id === message.id);
+            if (!messageExists) {
+              return { messages: [...state.messages, message] };
             }
-          } catch (error) {
-            console.error('Error sending message:', error);
-          }
+            return state;
+          });
+        } catch (error) {
+          console.error('Error sending message:', error);
         }
       },
       updateOnlineUsers: (users: User[]) => set({ onlineUsers: users }),
@@ -96,20 +94,12 @@ export const useChatStore = create<ChatState>()(
   )
 );
 
-// Set up WebRTC message handler
-webRTCService.setMessageCallback((message: Message) => {
-  // Only add received messages to state
-  useChatStore.setState((state) => {
-    const messageExists = state.messages.some(msg => msg.id === message.id);
-    if (!messageExists) {
-      return { messages: [...state.messages, message] };
-    }
-    return state;
-  });
-});
-
-// Subscribe to user status updates
+// Set up real-time subscriptions
 if (typeof window !== 'undefined') {
+  subscribeToMessages((messages) => {
+    useChatStore.setState({ messages });
+  });
+
   subscribeToUsers((users) => {
     useChatStore.setState({ onlineUsers: users });
   });
