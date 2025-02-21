@@ -6,23 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 
 const Index = () => {
   const [name, setName] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { setCurrentUser, currentUser, lastActiveChatId, setSelectedUser, onlineUsers } = useChatStore();
   const [isRedirecting, setIsRedirecting] = useState(false);
-
-  useEffect(() => {
-    // Simulate initial load
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleRedirect = async () => {
@@ -55,13 +44,23 @@ const Index = () => {
     }
   };
 
-  if (isLoading || isRedirecting) {
-    return <LoadingSkeleton />;
+  // Show loading state while redirecting
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <div className="animate-pulse">Redirecting...</div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
-      <div className="w-full max-w-md p-8 rounded-2xl bg-white shadow-lg">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md p-8 rounded-2xl bg-white shadow-lg"
+      >
         <h1 className="text-3xl font-semibold text-center mb-2">Welcome</h1>
         <p className="text-gray-600 text-center mb-8">Enter your name to start chatting</p>
         
@@ -85,7 +84,7 @@ const Index = () => {
             Join Chat
           </Button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };
