@@ -39,6 +39,20 @@ const saveUserToStorage = (user: User | null) => {
   }
 };
 
+// Load last active chat ID from localStorage
+const loadLastActiveChatId = (): string | null => {
+  return localStorage.getItem('lastActiveChatId');
+};
+
+// Save last active chat ID to localStorage
+const saveLastActiveChatId = (chatId: string | null) => {
+  if (chatId) {
+    localStorage.setItem('lastActiveChatId', chatId);
+  } else {
+    localStorage.removeItem('lastActiveChatId');
+  }
+};
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
@@ -46,7 +60,7 @@ export const useChatStore = create<ChatState>()(
       selectedUser: null,
       messages: [],
       onlineUsers: [],
-      lastActiveChatId: null,
+      lastActiveChatId: loadLastActiveChatId(),
       setCurrentUser: async (user: User) => {
         try {
           saveUserToStorage(user);
@@ -59,28 +73,37 @@ export const useChatStore = create<ChatState>()(
       },
       setSelectedUser: (user: User | null) => {
         set((state) => {
-          // Mark all messages from this user as read when selecting them
-          if (user) {
+          if (user && user.id !== state.currentUser?.id) {
+            // Save last active chat ID
+            saveLastActiveChatId(user.id);
+            
+            // Mark all messages from this user as read
             const updatedMessages = state.messages.map(msg => 
               msg.senderId === user.id && msg.receiverId === state.currentUser?.id
                 ? { ...msg, isRead: true }
                 : msg
             );
-            // Store the last active chat ID
+            
             return { 
               selectedUser: user, 
-              messages: updatedMessages, 
-              lastActiveChatId: user.id === state.currentUser?.id ? null : user.id 
+              messages: updatedMessages,
+              lastActiveChatId: user.id
             };
           }
-          return { selectedUser: user };
+          
+          // If viewing own profile or deselecting user
+          saveLastActiveChatId(null);
+          return { 
+            selectedUser: user,
+            lastActiveChatId: null
+          };
         });
       },
       addMessage: async (message: Message) => {
         try {
           await sendMessage(message);
           set((state) => {
-            // Ensure we don't add duplicate messages by checking ID
+            // Ensure we don't add duplicate messages
             const messageExists = state.messages.some(msg => msg.id === message.id);
             if (!messageExists) {
               return { messages: [...state.messages, message] };
@@ -96,8 +119,7 @@ export const useChatStore = create<ChatState>()(
     {
       name: 'chat-storage',
       partialize: (state) => ({ 
-        messages: state.messages,
-        lastActiveChatId: state.lastActiveChatId
+        messages: state.messages
       }),
     }
   )

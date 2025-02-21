@@ -1,9 +1,4 @@
 
-
-// Welcome page for the chat app
-
-
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../lib/store';
@@ -16,23 +11,28 @@ const Index = () => {
   const [name, setName] = useState('');
   const navigate = useNavigate();
   const { setCurrentUser, currentUser, lastActiveChatId, setSelectedUser, onlineUsers } = useChatStore();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // If user is already logged in and has a last active chat
-    if (currentUser && lastActiveChatId) {
-      // Find the last active user from online users
-      const lastActiveUser = onlineUsers.find(user => user.id === lastActiveChatId);
-      if (lastActiveUser) {
-        // Set the selected user before navigation
-        setSelectedUser(lastActiveUser);
+    const handleRedirect = async () => {
+      if (currentUser && lastActiveChatId && !isRedirecting) {
+        setIsRedirecting(true);
+        // Find the last active user from online users
+        const lastActiveUser = onlineUsers.find(user => user.id === lastActiveChatId);
+        if (lastActiveUser) {
+          // Set the selected user before navigation
+          await setSelectedUser(lastActiveUser);
+        }
+        // Navigate to chat with replace to avoid back button issues
+        navigate('/chat', { replace: true });
+      } else if (currentUser && !isRedirecting) {
+        setIsRedirecting(true);
+        navigate('/chat', { replace: true });
       }
-      // Navigate to chat
-      navigate('/chat', { replace: true });
-    } else if (currentUser) {
-      // If just logged in without last active chat
-      navigate('/chat');
-    }
-  }, [currentUser, lastActiveChatId, navigate, onlineUsers, setSelectedUser]);
+    };
+
+    handleRedirect();
+  }, [currentUser, lastActiveChatId, navigate, onlineUsers, setSelectedUser, isRedirecting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +47,15 @@ const Index = () => {
       // Navigation will be handled by the useEffect
     }
   };
+
+  // Show loading state while redirecting to prevent flickering
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <div className="animate-pulse">Redirecting...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
