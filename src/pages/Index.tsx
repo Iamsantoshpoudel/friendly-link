@@ -1,4 +1,9 @@
 
+
+// Welcome page for the chat app
+
+
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../lib/store';

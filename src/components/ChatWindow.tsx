@@ -47,8 +47,8 @@ const ChatWindow = () => {
 
   if (!selectedUser || !currentUser) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Select a user to start chatting</p>
+      <div className="flex-1 flex items-center justify-center bg-gray-50 mt-10 ">
+       <p>Welcome to poudelX | Developed by Santosh poudel</p>
       </div>
     );
   }
