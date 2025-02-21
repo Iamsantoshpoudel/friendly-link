@@ -1,17 +1,14 @@
-
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
-import { sendMessage, updateUserStatus, subscribeToMessages, subscribeToUsers } from './firebase';
+import { sendMessage, updateUserStatus, subscribeToMessages, subscribeToUsers, updateMessageReadStatus } from './firebase';
 
 const loadUserFromStorage = (): User | null => {
-  // Try to load from sessionStorage first
   const sessionUser = sessionStorage.getItem('currentUser');
   if (sessionUser) {
     return JSON.parse(sessionUser);
   }
 
-  // Then try cookies
   const cookieUser = document.cookie
     .split('; ')
     .find(row => row.startsWith('currentUser='));
@@ -25,26 +22,20 @@ const loadUserFromStorage = (): User | null => {
 
 const saveUserToStorage = (user: User | null) => {
   if (user) {
-    // Save to sessionStorage
     sessionStorage.setItem('currentUser', JSON.stringify(user));
-    
-    // Save to cookie (expires in 7 days)
     const date = new Date();
     date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000));
     document.cookie = `currentUser=${encodeURIComponent(JSON.stringify(user))}; expires=${date.toUTCString()}; path=/`;
   } else {
-    // Clear storage
     sessionStorage.removeItem('currentUser');
     document.cookie = 'currentUser=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
   }
 };
 
-// Load last active chat ID from localStorage
 const loadLastActiveChatId = (): string | null => {
   return localStorage.getItem('lastActiveChatId');
 };
 
-// Save last active chat ID to localStorage
 const saveLastActiveChatId = (chatId: string | null) => {
   if (chatId) {
     localStorage.setItem('lastActiveChatId', chatId);
@@ -72,16 +63,18 @@ export const useChatStore = create<ChatState>()(
         }
       },
       setSelectedUser: (user: User | null) => {
-        set((state) => {
+        set(async (state) => {
           if (user && user.id !== state.currentUser?.id) {
-            // Save last active chat ID
             saveLastActiveChatId(user.id);
             
-            // Mark all messages from this user as read
-            const updatedMessages = state.messages.map(msg => 
-              msg.senderId === user.id && msg.receiverId === state.currentUser?.id
-                ? { ...msg, isRead: true }
-                : msg
+            const updatedMessages = await Promise.all(
+              state.messages.map(async (msg) => {
+                if (msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead) {
+                  await updateMessageReadStatus(msg.id, true);
+                  return { ...msg, isRead: true };
+                }
+                return msg;
+              })
             );
             
             return { 
@@ -91,7 +84,6 @@ export const useChatStore = create<ChatState>()(
             };
           }
           
-          // If viewing own profile or deselecting user
           saveLastActiveChatId(null);
           return { 
             selectedUser: user,
@@ -103,7 +95,6 @@ export const useChatStore = create<ChatState>()(
         try {
           await sendMessage(message);
           set((state) => {
-            // Ensure we don't add duplicate messages
             const messageExists = state.messages.some(msg => msg.id === message.id);
             if (!messageExists) {
               return { messages: [...state.messages, message] };
@@ -125,7 +116,6 @@ export const useChatStore = create<ChatState>()(
   )
 );
 
-// Set up real-time subscriptions
 if (typeof window !== 'undefined') {
   subscribeToMessages((messages) => {
     useChatStore.setState({ messages });

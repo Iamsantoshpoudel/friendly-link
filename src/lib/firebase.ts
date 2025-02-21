@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, push, Database } from 'firebase/database';
+import { getDatabase, ref, set, onValue, push, Database, update } from 'firebase/database';
 import { Message, User } from './types';
 
 // Firebase configuration
@@ -41,7 +41,14 @@ const getUsersRef = () => {
 export const sendMessage = async (message: Message) => {
   if (!database) throw new Error('Firebase database not initialized');
   const newMessageRef = push(getMessagesRef());
-  await set(newMessageRef, message);
+  await set(newMessageRef, { ...message, id: newMessageRef.key });
+};
+
+export const updateMessageReadStatus = async (messageId: string, isRead: boolean) => {
+  if (!database) throw new Error('Firebase database not initialized');
+  const updates: { [key: string]: boolean } = {};
+  updates[`messages/${messageId}/isRead`] = isRead;
+  await update(ref(database), updates);
 };
 
 export const subscribeToMessages = (callback: (messages: Message[]) => void) => {
