@@ -6,6 +6,7 @@ import ChatWindow from '@/components/ChatWindow';
 import UserProfile from '@/components/UserProfile';
 import { useChatStore } from '@/lib/store';
 import { updateUserStatus } from '@/lib/firebase';
+import { User } from '@/lib/types'; // Added User type import
 
 const Chat = () => {
   const { currentUser, selectedUser, setSelectedUser } = useChatStore();
@@ -71,7 +72,7 @@ const Chat = () => {
         <div className={`${
           isMobile && selectedUser ? 'hidden' : 'w-full md:w-80'
         } md:block border-r border-gray-200`}>
-          <UserList onSelectChat={handleChatSelect} />
+          <UserList />
         </div>
 
         <div className={`${

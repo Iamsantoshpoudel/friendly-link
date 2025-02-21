@@ -1,6 +1,6 @@
 
 import { useChatStore } from '@/lib/store';
-import { Message } from '@/lib/types';
+import { Message, User } from '@/lib/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
@@ -54,7 +54,7 @@ const UserList = () => {
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="w-80 border-r border-gray-200 h-screen bg-white overflow-hidden flex flex-col"
+      className="w-full md:w-80 border-r border-gray-200 h-screen bg-white overflow-hidden flex flex-col"
     >
       <div className="p-4 border-b border-gray-200 space-y-4">
         <div className="flex items-center justify-between">
