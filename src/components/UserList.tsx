@@ -47,6 +47,15 @@ const UserList = ({ onChatSelect }: UserListProps) => {
     }
   };
 
+  const handleLogoClick = () => {
+    if (currentUser) {
+      setSelectedUser(currentUser);
+      if (window.innerWidth < 768) { // Mobile only
+        window.history.pushState({ profile: true }, '', '/profile');
+      }
+    }
+  };
+
   const filteredAndSortedUsers = onlineUsers
     .filter(user => 
       user.id !== currentUser?.id && 
@@ -85,7 +94,7 @@ const UserList = ({ onChatSelect }: UserListProps) => {
             src={Logo} 
             alt="Logo" 
             className="h-8 w-8 cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => setSelectedUser(currentUser)}
+            onClick={handleLogoClick}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
           />
