@@ -63,11 +63,13 @@ const Chat = () => {
       <AnimatePresence mode="wait">
         {(showUserList || !isMobile) && (
           <motion.div
-            initial={{ x: -280, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -280, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 w-80 border-r border-gray-200 relative md:relative absolute inset-0 bg-white z-30"
+            className={`${
+              isMobile ? 'w-full' : 'w-80'
+            } border-r border-gray-200 md:relative fixed inset-0 bg-white z-30`}
           >
             <UserList />
           </motion.div>
@@ -75,26 +77,18 @@ const Chat = () => {
       </AnimatePresence>
 
       <div className="flex-1 relative">
-        {selectedUser && isMobile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-2 top-4 z-50"
-            onClick={() => setShowUserList(true)}
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
-        )}
         <AnimatePresence mode="wait">
           {(!isMobile || (isMobile && !showUserList)) && (
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute inset-0"
+              className={`${
+                isMobile ? 'fixed inset-0 z-40 bg-white' : 'absolute inset-0'
+              }`}
             >
-              <ChatWindow />
+              <ChatWindow showBackButton={isMobile} onBack={() => setShowUserList(true)} />
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,14 +1,18 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/store';
 import { Message } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, MoreVertical, Phone, Video } from 'lucide-react';
+import { Send, MoreVertical, Phone, Video, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 
-const ChatWindow = () => {
+interface ChatWindowProps {
+  showBackButton?: boolean;
+  onBack?: () => void;
+}
+
+const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
   const [newMessage, setNewMessage] = useState('');
   const { messages, currentUser, selectedUser, addMessage } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -47,17 +51,27 @@ const ChatWindow = () => {
 
   if (!selectedUser || !currentUser) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 mt-10 ">
-       <p>Welcome to poudelX | Developed by Santosh poudel</p>
+      <div className="flex-1 flex items-center justify-center bg-gray-50 mt-10">
+        <p>Welcome to poudelX | Developed by Santosh poudel</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-gray-50">
       <div className="p-4 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            {showBackButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onBack}
+                className="md:hidden"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            )}
             <div className="relative">
               <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                 {selectedUser.name[0].toUpperCase()}
