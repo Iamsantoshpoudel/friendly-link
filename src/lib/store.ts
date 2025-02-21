@@ -68,19 +68,17 @@ export const useChatStore = create<ChatState>()(
           if (user && user.id !== state.currentUser?.id) {
             saveLastActiveChatId(user.id);
             
-            // First update the UI immediately
+            // Mark messages as read
             const updatedMessages = state.messages.map(msg => 
               msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead
                 ? { ...msg, isRead: true }
                 : msg
             );
             
-            // Then update Firebase in the background
-            state.messages.forEach(msg => {
-              if (msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead) {
-                updateMessageReadStatus(msg.id, true).catch(error => {
-                  console.error('Error updating message read status:', error);
-                });
+            // Update Firebase read status in background
+            updatedMessages.forEach(msg => {
+              if (msg.senderId === user.id && msg.receiverId === state.currentUser?.id && msg.isRead) {
+                updateMessageReadStatus(msg.id, true).catch(console.error);
               }
             });
             
@@ -99,15 +97,24 @@ export const useChatStore = create<ChatState>()(
         });
       },
       addMessage: async (message: Message) => {
+        set((state) => {
+          // Check for duplicate messages
+          const messageExists = state.messages.some(msg => 
+            msg.id === message.id || 
+            (msg.senderId === message.senderId && 
+             msg.receiverId === message.receiverId && 
+             msg.content === message.content && 
+             Math.abs(new Date(msg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000)
+          );
+          
+          if (!messageExists) {
+            return { messages: [...state.messages, message] };
+          }
+          return state;
+        });
+        
         try {
           await sendMessage(message);
-          set((state) => {
-            const messageExists = state.messages.some(msg => msg.id === message.id);
-            if (!messageExists) {
-              return { messages: [...state.messages, message] };
-            }
-            return state;
-          });
         } catch (error) {
           console.error('Error sending message:', error);
         }
