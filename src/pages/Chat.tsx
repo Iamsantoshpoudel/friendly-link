@@ -6,12 +6,13 @@ import ChatWindow from '@/components/ChatWindow';
 import UserProfile from '@/components/UserProfile';
 import { useChatStore } from '@/lib/store';
 import { updateUserStatus } from '@/lib/firebase';
-import { User } from '@/lib/types'; // Added User type import
+import { User } from '@/lib/types';
 
 const Chat = () => {
   const { currentUser, selectedUser, setSelectedUser } = useChatStore();
   const [isMobile, setIsMobile] = useState(false);
 
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -22,6 +23,7 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Handle user status updates
   useEffect(() => {
     if (currentUser) {
       updateUserStatus({
@@ -46,10 +48,11 @@ const Chat = () => {
     }
   }, [currentUser]);
 
-  // Handle browser back button
+  // Handle mobile back button and history
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
       if (isMobile && selectedUser) {
+        event.preventDefault();
         setSelectedUser(null);
       }
     };
@@ -61,37 +64,60 @@ const Chat = () => {
   // Handle chat selection and history
   const handleChatSelect = (user: User) => {
     if (isMobile) {
-      window.history.pushState(null, '', window.location.pathname);
+      // Push new state when opening chat
+      window.history.pushState({ chat: user.id }, '', `/chat/${user.id}`);
     }
     setSelectedUser(user);
   };
 
   return (
     <div className="h-screen bg-white relative overflow-hidden">
-      <div className="flex h-full">
-        <div className={`${
-          isMobile && selectedUser ? 'hidden' : 'w-full md:w-80'
-        } md:block border-r border-gray-200`}>
-          <UserList />
-        </div>
+      <AnimatePresence mode="wait">
+        <div className="flex h-full">
+          <motion.div
+            initial={{ x: 0 }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className={`${
+              isMobile && selectedUser ? 'hidden' : 'w-full md:w-80'
+            } md:block border-r border-gray-200`}
+          >
+            <UserList onChatSelect={handleChatSelect} />
+          </motion.div>
 
-        <div className={`${
-          isMobile && !selectedUser ? 'hidden' : 'flex-1'
-        } md:block relative`}>
-          <ChatWindow 
-            showBackButton={isMobile} 
-            onBack={() => {
-              window.history.back();
-            }} 
-          />
-        </div>
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className={`${
+              isMobile && !selectedUser ? 'hidden' : 'flex-1'
+            } md:block relative`}
+          >
+            <ChatWindow 
+              showBackButton={isMobile} 
+              onBack={() => {
+                if (isMobile) {
+                  window.history.back();
+                }
+              }} 
+            />
+          </motion.div>
 
-        {selectedUser && !isMobile && (
-          <div className="hidden md:block w-80 border-l border-gray-200">
-            <UserProfile user={selectedUser} />
-          </div>
-        )}
-      </div>
+          {selectedUser && !isMobile && (
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="hidden md:block w-80 border-l border-gray-200"
+            >
+              <UserProfile user={selectedUser} />
+            </motion.div>
+          )}
+        </div>
+      </AnimatePresence>
     </div>
   );
 };

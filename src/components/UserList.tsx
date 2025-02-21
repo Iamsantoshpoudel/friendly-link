@@ -1,17 +1,52 @@
-
 import { useChatStore } from '@/lib/store';
 import { Message, User } from '@/lib/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import Logo from "../assets/img/Logo.svg";
 
-const UserList = () => {
+interface UserListProps {
+  onChatSelect?: (user: User) => void;
+}
+
+const UserList = ({ onChatSelect }: UserListProps) => {
   const { onlineUsers, currentUser, selectedUser, setSelectedUser, messages } = useChatStore();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter users and sort by latest message
+  useEffect(() => {
+    const chatId = window.location.pathname.split('/').pop();
+    if (chatId && chatId !== 'chat') {
+      const lastActiveUser = onlineUsers.find(user => user.id === chatId);
+      if (lastActiveUser) {
+        setSelectedUser(lastActiveUser);
+      }
+    }
+  }, [onlineUsers, setSelectedUser]);
+
+  const getLastMessage = (userId: string): Message | undefined => {
+    return messages
+      .filter(m => (m.senderId === userId && m.receiverId === currentUser?.id) || 
+                   (m.senderId === currentUser?.id && m.receiverId === userId))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+  };
+
+  const getUnreadCount = (userId: string): number => {
+    return messages.filter(m => 
+      m.senderId === userId && 
+      m.receiverId === currentUser?.id && 
+      !m.isRead
+    ).length;
+  };
+
+  const handleUserClick = (user: User) => {
+    if (onChatSelect) {
+      onChatSelect(user);
+    } else {
+      setSelectedUser(user);
+    }
+  };
+
   const filteredAndSortedUsers = onlineUsers
     .filter(user => 
       user.id !== currentUser?.id && 
@@ -35,25 +70,12 @@ const UserList = () => {
       return new Date(bLastMessage.timestamp).getTime() - new Date(aLastMessage.timestamp).getTime();
     });
 
-  const getLastMessage = (userId: string): Message | undefined => {
-    return messages
-      .filter(m => (m.senderId === userId && m.receiverId === currentUser?.id) || 
-                   (m.senderId === currentUser?.id && m.receiverId === userId))
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-  };
-
-  const getUnreadCount = (userId: string): number => {
-    return messages.filter(m => 
-      m.senderId === userId && 
-      m.receiverId === currentUser?.id && 
-      !m.isRead
-    ).length;
-  };
-
   return (
     <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="w-full md:w-80 border-r border-gray-200 h-screen bg-white overflow-hidden flex flex-col"
     >
       <div className="p-4 border-b border-gray-200 space-y-4">
@@ -92,7 +114,7 @@ const UserList = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                onClick={() => setSelectedUser(user)}
+                onClick={() => handleUserClick(user)}
                 className={`p-4 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
                   selectedUser?.id === user.id ? 'bg-gray-50' : ''
                 }`}
