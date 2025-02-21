@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
@@ -63,19 +64,25 @@ export const useChatStore = create<ChatState>()(
         }
       },
       setSelectedUser: (user: User | null) => {
-        set(async (state) => {
+        set((state) => {
           if (user && user.id !== state.currentUser?.id) {
             saveLastActiveChatId(user.id);
             
-            const updatedMessages = await Promise.all(
-              state.messages.map(async (msg) => {
-                if (msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead) {
-                  await updateMessageReadStatus(msg.id, true);
-                  return { ...msg, isRead: true };
-                }
-                return msg;
-              })
+            // First update the UI immediately
+            const updatedMessages = state.messages.map(msg => 
+              msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead
+                ? { ...msg, isRead: true }
+                : msg
             );
+            
+            // Then update Firebase in the background
+            state.messages.forEach(msg => {
+              if (msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead) {
+                updateMessageReadStatus(msg.id, true).catch(error => {
+                  console.error('Error updating message read status:', error);
+                });
+              }
+            });
             
             return { 
               selectedUser: user, 
