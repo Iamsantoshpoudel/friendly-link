@@ -48,19 +48,26 @@ const Chat = () => {
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    if (isMobile && selectedUser) {
+      setShowUserList(false);
+    }
+  }, [selectedUser, isMobile]);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex h-screen bg-white relative overflow-hidden"
     >
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {(showUserList || !isMobile) && (
           <motion.div
-            initial={{ x: -280 }}
-            animate={{ x: 0 }}
-            exit={{ x: -280 }}
-            className="flex-shrink-0 w-80 border-r border-gray-200 relative"
+            initial={{ x: -280, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -280, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-shrink-0 w-80 border-r border-gray-200 relative md:relative absolute inset-0 bg-white z-30"
           >
             <UserList />
           </motion.div>
@@ -68,20 +75,32 @@ const Chat = () => {
       </AnimatePresence>
 
       <div className="flex-1 relative">
-        {isMobile && (
+        {selectedUser && isMobile && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-2 top-4 z-50 md:hidden"
-            onClick={() => setShowUserList(!showUserList)}
+            className="absolute left-2 top-4 z-50"
+            onClick={() => setShowUserList(true)}
           >
-            <ChevronLeft className={`w-6 h-6 transition-transform ${showUserList ? 'rotate-180' : ''}`} />
+            <ChevronLeft className="w-6 h-6" />
           </Button>
         )}
-        <ChatWindow />
+        <AnimatePresence mode="wait">
+          {(!isMobile || (isMobile && !showUserList)) && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+            >
+              <ChatWindow />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {selectedUser && (
+      {selectedUser && !isMobile && (
         <motion.div
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
