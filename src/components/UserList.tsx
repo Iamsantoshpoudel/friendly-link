@@ -1,9 +1,11 @@
+
 import { useChatStore } from '@/lib/store';
 import { Message, User } from '@/lib/types';
 import { Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import Logo from "../assets/img/Logo.svg";
+import { useNavigate } from 'react-router-dom';
 
 interface UserListProps {
   onChatSelect?: (user: User) => void;
@@ -12,6 +14,7 @@ interface UserListProps {
 const UserList = ({ onChatSelect }: UserListProps) => {
   const { onlineUsers, currentUser, selectedUser, setSelectedUser, messages } = useChatStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const chatId = window.location.pathname.split('/').pop();
@@ -44,13 +47,17 @@ const UserList = ({ onChatSelect }: UserListProps) => {
     } else {
       setSelectedUser(user);
     }
+    
+    if (window.innerWidth < 768) {
+      navigate(`/chat/${user.id}`);
+    }
   };
 
   const handleLogoClick = () => {
     if (currentUser) {
       setSelectedUser(currentUser);
       if (window.innerWidth < 768) {
-        window.history.pushState({ profile: true }, '', '/profile');
+        navigate('/chat/profile');
       }
     }
   };

@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (currentUser && lastActiveChatId) {
-      navigate('/chat');
+      navigate('/chat', { replace: true });
     }
   }, [currentUser, lastActiveChatId, navigate]);
   
@@ -38,7 +38,7 @@ const App = () => (
       <Routes>
         <Route path="/" element={<Index />} />
         <Route 
-          path="/chat" 
+          path="/chat/*" 
           element={
             <ProtectedRoute>
               <Chat />
