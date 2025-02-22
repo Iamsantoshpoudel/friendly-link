@@ -7,13 +7,15 @@ import { useChatStore } from '@/lib/store';
 import { updateUserStatus } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Chat = () => {
   const { currentUser, selectedUser, setSelectedUser } = useChatStore();
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProfileView = location.pathname === '/chat/profile';
 
   // Simulate loading state
   useEffect(() => {
@@ -66,6 +68,8 @@ const Chat = () => {
       if (isMobile) {
         if (window.location.pathname === '/chat') {
           setSelectedUser(null);
+        } else if (window.location.pathname === '/chat/profile') {
+          navigate('/chat');
         } else {
           navigate('/chat');
         }
@@ -83,6 +87,19 @@ const Chat = () => {
 
   if (isLoading) {
     return <LoadingSkeleton />;
+  }
+
+  // Show profile in full screen on mobile when in profile view
+  if (isMobile && isProfileView && currentUser) {
+    return (
+      <div className="h-screen bg-white">
+        <UserProfile 
+          user={currentUser} 
+          showBackButton={true}
+          onBack={() => navigate('/chat')}
+        />
+      </div>
+    );
   }
 
   return (
