@@ -18,13 +18,13 @@ const UserList = ({ onChatSelect }: UserListProps) => {
 
   useEffect(() => {
     const chatId = window.location.pathname.split('/').pop();
-    if (chatId && chatId !== 'chat') {
-      const lastActiveUser = onlineUsers.find(user => user.id === chatId);
+    if (chatId && chatId !== 'chat' && chatId !== 'profile') {
+      const lastActiveUser = onlineUsers.find(user => user.id === chatId && user.id !== currentUser?.id);
       if (lastActiveUser) {
         setSelectedUser(lastActiveUser);
       }
     }
-  }, [onlineUsers, setSelectedUser]);
+  }, [onlineUsers, setSelectedUser, currentUser]);
 
   const getLastMessage = (userId: string): Message | undefined => {
     return messages
@@ -42,6 +42,8 @@ const UserList = ({ onChatSelect }: UserListProps) => {
   };
 
   const handleUserClick = (user: User) => {
+    if (user.id === currentUser?.id) return; // Prevent self-chat
+    
     if (onChatSelect) {
       onChatSelect(user);
     } else {
@@ -55,16 +57,13 @@ const UserList = ({ onChatSelect }: UserListProps) => {
 
   const handleLogoClick = () => {
     if (currentUser) {
-      setSelectedUser(currentUser);
-      if (window.innerWidth < 768) {
-        navigate('/chat/profile');
-      }
+      navigate('/chat/profile');
     }
   };
 
   const filteredAndSortedUsers = onlineUsers
     .filter(user => 
-      user.id !== currentUser?.id && 
+      user.id !== currentUser?.id && // Filter out current user
       user.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
