@@ -4,6 +4,8 @@ export interface User {
   name: string;
   isOnline: boolean;
   lastSeen: string;
+  email?: string; // Optional for future authentication
+  photoURL?: string; // Optional for future profile photos
 }
 
 export interface Message {
