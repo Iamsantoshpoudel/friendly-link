@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/store';
 import { Message } from '@/lib/types';
@@ -25,15 +24,13 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
     }
   };
 
-  // Auto-scroll when messages update
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Initial scroll adjustment when chat opens
   useEffect(() => {
     if (messageContainerRef.current) {
-      messageContainerRef.current.scrollTop = 60; // Scroll slightly down for better visibility
+      messageContainerRef.current.scrollTop = 60;
     }
   }, [selectedUser]);
 
@@ -68,7 +65,6 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 md:relative z-10 bg-white border-b border-gray-200">
         <div className="p-4">
           <div className="flex items-center justify-between">
@@ -113,7 +109,6 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
         </div>
       </div>
 
-      {/* Scrollable Messages */}
       <div 
         ref={messageContainerRef}
         className="flex-1 overflow-y-auto py-4 px-4 mt-[72px] mb-[76px] md:my-0"
@@ -125,12 +120,8 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                              filteredMessages[index + 1].senderId !== message.senderId;
             
             return (
-              <motion.div
+              <div
                 key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
                 className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-4`}
               >
                 <div className={`flex items-end space-x-2 ${isSender ? 'flex-row-reverse space-x-reverse' : ''}`}>
@@ -141,8 +132,7 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                       </div>
                     </div>
                   )}
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
+                  <div
                     className={`max-w-[70%] rounded-2xl px-4 py-2 ${
                       isSender
                         ? 'bg-blue-600 text-white'
@@ -158,16 +148,15 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                         })}
                       </span>
                     </div>
-                  </motion.div>
+                  </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Fixed Input Area */}
       <div className="fixed bottom-0 left-0 right-0 md:relative bg-white border-t border-gray-200">
         <form onSubmit={handleSendMessage} className="p-4">
           <div className="flex space-x-2">
