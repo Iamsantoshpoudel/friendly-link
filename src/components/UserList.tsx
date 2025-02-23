@@ -4,7 +4,6 @@ import { Message, User } from '@/lib/types';
 import { Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
-import Logo from "../assets/img/Logo.svg";
 import { useNavigate } from 'react-router-dom';
 
 interface UserListProps {
@@ -12,19 +11,9 @@ interface UserListProps {
 }
 
 const UserList = ({ onChatSelect }: UserListProps) => {
-  const { onlineUsers, currentUser, selectedUser, setSelectedUser, messages } = useChatStore();
+  const { onlineUsers, currentUser, selectedUser, messages } = useChatStore();
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const chatId = window.location.pathname.split('/').pop();
-    if (chatId && chatId !== 'chat' && chatId !== 'profile') {
-      const lastActiveUser = onlineUsers.find(user => user.id === chatId && user.id !== currentUser?.id);
-      if (lastActiveUser) {
-        setSelectedUser(lastActiveUser);
-      }
-    }
-  }, [onlineUsers, setSelectedUser, currentUser]);
 
   const getLastMessage = (userId: string): Message | undefined => {
     return messages
@@ -42,41 +31,26 @@ const UserList = ({ onChatSelect }: UserListProps) => {
   };
 
   const handleUserClick = (user: User) => {
-    if (user.id === currentUser?.id) return; // Prevent self-chat
-    
+    if (user.id === currentUser?.id) return;
     if (onChatSelect) {
       onChatSelect(user);
-    } else {
-      setSelectedUser(user);
-    }
-    
-    if (window.innerWidth < 768) {
-      navigate(`/chat/${user.id}`);
     }
   };
 
-  const handleLogoClick = () => {
-    if (currentUser) {
-      navigate('/chat/profile');
-    }
-  };
+  const onlineUsersFiltered = onlineUsers.filter(user => 
+    user.id !== currentUser?.id && 
+    user.isOnline
+  );
 
   const filteredAndSortedUsers = onlineUsers
     .filter(user => 
-      user.id !== currentUser?.id && // Filter out current user
+      user.id !== currentUser?.id && 
       user.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
-      const aLastMessage = messages
-        .filter(m => (m.senderId === a.id && m.receiverId === currentUser?.id) || 
-                     (m.senderId === currentUser?.id && m.receiverId === a.id))
-        .sort((m1, m2) => new Date(m2.timestamp).getTime() - new Date(m1.timestamp).getTime())[0];
+      const aLastMessage = getLastMessage(a.id);
+      const bLastMessage = getLastMessage(b.id);
       
-      const bLastMessage = messages
-        .filter(m => (m.senderId === b.id && m.receiverId === currentUser?.id) || 
-                     (m.senderId === currentUser?.id && m.receiverId === b.id))
-        .sort((m1, m2) => new Date(m2.timestamp).getTime() - new Date(m1.timestamp).getTime())[0];
-
       if (!aLastMessage && !bLastMessage) return 0;
       if (!aLastMessage) return 1;
       if (!bLastMessage) return -1;
@@ -85,17 +59,9 @@ const UserList = ({ onChatSelect }: UserListProps) => {
     });
 
   return (
-    <div className="w-full md:w-80 border-r border-gray-200 h-screen bg-white overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-gray-200 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Messages</h2>
-          <img 
-            src={Logo} 
-            alt="Logo" 
-            className="h-8 w-8 cursor-pointer hover:scale-105 transition-transform"
-            onClick={handleLogoClick}
-          />
-        </div>
+    <div className="flex flex-col h-full bg-white">
+      <div className="p-4 border-b border-gray-200">
+        <h2 className="text-xl font-semibold mb-4">Messages</h2>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
@@ -108,6 +74,28 @@ const UserList = ({ onChatSelect }: UserListProps) => {
         </div>
       </div>
 
+      {/* Online Users Horizontal Scroll */}
+      <div className="p-4 overflow-x-auto whitespace-nowrap border-b border-gray-200">
+        <div className="flex space-x-4">
+          {onlineUsersFiltered.map((user) => (
+            <div
+              key={user.id}
+              onClick={() => handleUserClick(user)}
+              className="flex flex-col items-center cursor-pointer"
+            >
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-lg">
+                  {user.name[0].toUpperCase()}
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
+              </div>
+              <span className="text-xs mt-1 max-w-[60px] truncate">{user.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
         {filteredAndSortedUsers.map((user) => {
           const lastMessage = getLastMessage(user.id);
