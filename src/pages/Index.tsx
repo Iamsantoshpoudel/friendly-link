@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../lib/store';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { motion } from 'framer-motion';
 import { toast } from "@/components/ui/use-toast";
 import { 
@@ -116,8 +116,6 @@ const Index = () => {
         });
       }
     } else {
-      // Verify code logic here
-      // For now, just show a message
       toast({
         title: "Info",
         description: "Phone verification will be implemented in the next phase."
@@ -155,7 +153,7 @@ const Index = () => {
             <form onSubmit={handleEmailAuth} className="space-y-4">
               {isRegistering && (
                 <div className="space-y-2">
-                  <Input
+                  <InputWithIcon
                     type="text"
                     placeholder="Your name"
                     value={name}
@@ -166,7 +164,7 @@ const Index = () => {
                 </div>
               )}
               <div className="space-y-2">
-                <Input
+                <InputWithIcon
                   type="email"
                   placeholder="Email address"
                   value={email}
@@ -176,7 +174,7 @@ const Index = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Input
+                <InputWithIcon
                   type="password"
                   placeholder="Password"
                   value={password}
@@ -208,7 +206,7 @@ const Index = () => {
             <form onSubmit={handlePhoneAuth} className="space-y-4">
               {!isVerifying ? (
                 <div className="space-y-2">
-                  <Input
+                  <InputWithIcon
                     type="tel"
                     placeholder="Phone number"
                     value={phoneNumber}
@@ -219,7 +217,7 @@ const Index = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Input
+                  <InputWithIcon
                     type="text"
                     placeholder="Verification code"
                     value={verificationCode}
