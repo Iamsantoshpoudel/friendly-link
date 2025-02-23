@@ -1,4 +1,3 @@
-
 import { initializeApp, getApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, push, Database, update } from 'firebase/database';
 import { 
@@ -127,7 +126,50 @@ export const subscribeToMessages = (callback: (messages: Message[]) => void) => 
 
 // User Operations
 export const updateUserStatus = async (user: User) => {
-  await set(ref(database, `users/${user.id}`), user);
+  // Add activity tracking
+  let activityTimeout: NodeJS.Timeout;
+  
+  const setOnlineStatus = (isOnline: boolean) => {
+    if (user) {
+      set(ref(database, `users/${user.id}`), {
+        ...user,
+        isOnline,
+        lastSeen: new Date().toISOString()
+      });
+    }
+  };
+
+  const resetActivityTimeout = () => {
+    clearTimeout(activityTimeout);
+    activityTimeout = setTimeout(() => {
+      setOnlineStatus(false);
+    }, 300000); // Set offline after 5 minutes of inactivity
+  };
+
+  // Event listeners for user activity
+  const activityEvents = ['mousedown', 'keydown', 'touchstart', 'mousemove'];
+  
+  const handleActivity = () => {
+    setOnlineStatus(true);
+    resetActivityTimeout();
+  };
+
+  activityEvents.forEach(event => {
+    window.addEventListener(event, handleActivity);
+  });
+
+  // Set initial online status
+  setOnlineStatus(true);
+  resetActivityTimeout();
+
+  // Cleanup function
+  return () => {
+    activityEvents.forEach(event => {
+      window.removeEventListener(event, handleActivity);
+    });
+    clearTimeout(activityTimeout);
+    setOnlineStatus(false);
+  };
 };
 
 export const subscribeToUsers = (callback: (users: User[]) => void) => {

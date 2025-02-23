@@ -59,17 +59,24 @@ const UserList = ({ onChatSelect }: UserListProps) => {
     });
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold mb-4">Messages</h2>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+    <div className="flex flex-col h-full bg-background">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center">
+          <img 
+            src="/src/assets/img/Logo.svg" 
+            alt="Logo" 
+            className="w-8 h-8 mr-2"
+          />
+          <h2 className="text-xl font-semibold">Chats</h2>
+        </div>
+        <div className="relative mt-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             type="text"
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-full bg-gray-50"
+            className="pl-9 w-full bg-muted/50"
           />
         </div>
       </div>
