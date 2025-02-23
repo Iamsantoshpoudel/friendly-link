@@ -1,6 +1,15 @@
-
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, push, Database, update } from 'firebase/database';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  updateProfile
+} from 'firebase/auth';
 import { Message, User } from './types';
 
 // Firebase configuration
@@ -16,6 +25,8 @@ const firebaseConfig = {
 };
 
 let database: Database | null = null;
+const auth = getAuth();
+const googleProvider = new GoogleAuthProvider();
 
 try {
   // Initialize Firebase
@@ -25,6 +36,59 @@ try {
 } catch (error) {
   console.error('Error initializing Firebase:', error);
 }
+
+// Auth Operations
+export const registerWithEmail = async (email: string, password: string, name: string) => {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(userCredential.user, { displayName: name });
+  const user: User = {
+    id: userCredential.user.uid,
+    name: name,
+    email: email,
+    isOnline: true,
+    lastSeen: new Date().toISOString()
+  };
+  await updateUserStatus(user);
+  return user;
+};
+
+export const loginWithEmail = async (email: string, password: string) => {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const user: User = {
+    id: userCredential.user.uid,
+    name: userCredential.user.displayName || 'User',
+    email: email,
+    isOnline: true,
+    lastSeen: new Date().toISOString()
+  };
+  await updateUserStatus(user);
+  return user;
+};
+
+export const loginWithGoogle = async () => {
+  const result = await signInWithPopup(auth, googleProvider);
+  const user: User = {
+    id: result.user.uid,
+    name: result.user.displayName || 'User',
+    email: result.user.email || undefined,
+    photoURL: result.user.photoURL || undefined,
+    isOnline: true,
+    lastSeen: new Date().toISOString()
+  };
+  await updateUserStatus(user);
+  return user;
+};
+
+// Initialize RecaptchaVerifier
+export const initRecaptcha = (buttonId: string) => {
+  return new RecaptchaVerifier(auth, buttonId, {
+    size: 'invisible'
+  });
+};
+
+export const loginWithPhone = async (phoneNumber: string, recaptchaVerifier: RecaptchaVerifier) => {
+  return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+};
 
 // Database References
 const getMessagesRef = () => {
