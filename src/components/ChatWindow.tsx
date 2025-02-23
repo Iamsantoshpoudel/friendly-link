@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/store';
 import { Message } from '@/lib/types';
@@ -30,7 +31,7 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
 
   useEffect(() => {
     if (messageContainerRef.current) {
-      messageContainerRef.current.scrollTop = 60;
+      messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
     }
   }, [selectedUser]);
 
@@ -65,7 +66,8 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      <div className="fixed top-0 left-0 right-0 md:relative z-10 bg-white border-b border-gray-200">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
         <div className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -95,86 +97,86 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="icon">
-                <Phone className="h-5 w-5 text-gray-600" />
+              <Button variant="ghost" size="icon" className="text-purple-600">
+                <Phone className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <Video className="h-5 w-5 text-gray-600" />
+              <Button variant="ghost" size="icon" className="text-purple-600">
+                <Video className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-5 w-5 text-gray-600" />
+              <Button variant="ghost" size="icon" className="text-gray-600">
+                <MoreVertical className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Messages */}
       <div 
         ref={messageContainerRef}
-        className="flex-1 overflow-y-auto py-4 px-4 mt-[72px] mb-[76px] md:my-0"
+        className="flex-1 overflow-y-auto p-4 space-y-4"
       >
         <AnimatePresence initial={false}>
           {filteredMessages.map((message, index) => {
             const isSender = message.senderId === currentUser.id;
-            const showAvatar = index === filteredMessages.length - 1 || 
-                             filteredMessages[index + 1].senderId !== message.senderId;
+            const showAvatar = index === 0 || 
+                             filteredMessages[index - 1].senderId !== message.senderId;
             
             return (
-              <div
+              <motion.div
                 key={message.id}
-                className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-4`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`flex items-end space-x-2 ${isSender ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                  {showAvatar && (
-                    <div className="flex-shrink-0">
+                <div className={`flex items-end space-x-2 max-w-[70%] ${isSender ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  {showAvatar && !isSender && (
+                    <div className="flex-shrink-0 mb-2">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm">
-                        {isSender ? currentUser.name[0].toUpperCase() : selectedUser.name[0].toUpperCase()}
+                        {selectedUser.name[0].toUpperCase()}
                       </div>
                     </div>
                   )}
-                  <div
-                    className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                      isSender
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-900 border border-gray-200'
-                    }`}
-                  >
-                    <p className="break-words">{message.content}</p>
-                    <div className="flex items-center justify-end space-x-1 mt-1">
-                      <span className="text-xs opacity-70">
-                        {new Date(message.timestamp).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
+                  <div className={`group relative rounded-2xl px-4 py-2 ${
+                    isSender
+                      ? 'bg-purple-600 text-white rounded-br-none'
+                      : 'bg-white text-gray-900 rounded-bl-none shadow-sm'
+                  }`}>
+                    <p className="break-words text-sm">{message.content}</p>
+                    <div className={`text-[10px] ${isSender ? 'text-purple-200' : 'text-gray-500'} mt-1`}>
+                      {new Date(message.timestamp).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="fixed bottom-0 left-0 right-0 md:relative bg-white border-t border-gray-200">
-        <form onSubmit={handleSendMessage} className="p-4">
-          <div className="flex space-x-2">
-            <Input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1"
-            />
-            <Button 
-              type="submit" 
-              disabled={!newMessage.trim()}
-              className="transition-all duration-200 hover:scale-105"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
+      {/* Message Input */}
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+        <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+          <Input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Message..."
+            className="flex-1 bg-gray-50"
+          />
+          <Button 
+            type="submit" 
+            size="icon"
+            disabled={!newMessage.trim()}
+            className="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-10 h-10 flex items-center justify-center"
+          >
+            <Send className="w-5 h-5" />
+          </Button>
         </form>
       </div>
     </div>

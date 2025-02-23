@@ -75,10 +75,39 @@ const Chat = () => {
     }
   };
 
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  const renderBottomNavigation = () => (
+    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
+      <div className="flex items-center justify-around py-2">
+        <button
+          onClick={() => handleTabChange('chats')}
+          className={`flex flex-col items-center p-2 ${
+            activeTab === 'chats' ? 'text-purple-600' : 'text-gray-600'
+          }`}
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="text-xs mt-1">Chats</span>
+        </button>
+        <button
+          onClick={() => handleTabChange('profile')}
+          className={`flex flex-col items-center p-2 ${
+            activeTab === 'profile' ? 'text-purple-600' : 'text-gray-600'
+          }`}
+        >
+          <User className="h-6 w-6" />
+          <span className="text-xs mt-1">Profile</span>
+        </button>
+      </div>
+    </div>
+  );
+
   if (isMobile) {
-    if (selectedUser) {
-      return (
-        <div className="h-screen bg-white">
+    return (
+      <div className="h-screen bg-white flex flex-col">
+        {selectedUser ? (
           <ChatWindow 
             showBackButton={true} 
             onBack={() => {
@@ -86,51 +115,23 @@ const Chat = () => {
               navigate('/chat');
             }} 
           />
-        </div>
-      );
-    }
-
-    if (location.pathname === '/chat/profile') {
-      return (
-        <div className="h-screen bg-white">
-          <UserProfile 
-            user={currentUser!} 
-            showBackButton={true}
-            onBack={() => navigate('/chat')}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="h-screen bg-white flex flex-col">
-        <div className="flex-1 overflow-hidden">
-          <UserList onChatSelect={(user) => {
-            setSelectedUser(user);
-            navigate(`/chat/${user.id}`);
-          }} />
-        </div>
-        {/* Bottom Navigation */}
-        <div className="flex items-center justify-around border-t border-gray-200 py-2 px-4 bg-white">
-          <button
-            onClick={() => handleTabChange('chats')}
-            className={`flex flex-col items-center p-2 ${
-              activeTab === 'chats' ? 'text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <MessageCircle className="h-6 w-6" />
-            <span className="text-xs mt-1">Chats</span>
-          </button>
-          <button
-            onClick={() => handleTabChange('profile')}
-            className={`flex flex-col items-center p-2 ${
-              activeTab === 'profile' ? 'text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <User className="h-6 w-6" />
-            <span className="text-xs mt-1">Profile</span>
-          </button>
-        </div>
+        ) : location.pathname === '/chat/profile' ? (
+          <div className="flex-1 overflow-hidden pb-16">
+            <UserProfile 
+              user={currentUser!} 
+              showBackButton={true}
+              onBack={() => navigate('/chat')}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden pb-16">
+            <UserList onChatSelect={(user) => {
+              setSelectedUser(user);
+              navigate(`/chat/${user.id}`);
+            }} />
+          </div>
+        )}
+        {!selectedUser && renderBottomNavigation()}
       </div>
     );
   }
