@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, push, Database, update } from 'firebase/database';
 import { 
@@ -24,18 +25,11 @@ const firebaseConfig = {
   measurementId: "G-4F1W5ZS53S"
 };
 
-let database: Database | null = null;
-const auth = getAuth();
+// Initialize Firebase first
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
-
-try {
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  database = getDatabase(app);
-  console.log('Firebase initialized successfully');
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-}
 
 // Auth Operations
 export const registerWithEmail = async (email: string, password: string, name: string) => {
@@ -92,36 +86,26 @@ export const loginWithPhone = async (phoneNumber: string, recaptchaVerifier: Rec
 
 // Database References
 const getMessagesRef = () => {
-  if (!database) throw new Error('Firebase database not initialized');
   return ref(database, 'messages');
 };
 
 const getUsersRef = () => {
-  if (!database) throw new Error('Firebase database not initialized');
   return ref(database, 'users');
 };
 
 // Message Operations
 export const sendMessage = async (message: Message) => {
-  if (!database) throw new Error('Firebase database not initialized');
   const newMessageRef = push(getMessagesRef());
   await set(newMessageRef, { ...message, id: newMessageRef.key });
 };
 
 export const updateMessageReadStatus = async (messageId: string, isRead: boolean) => {
-  if (!database) throw new Error('Firebase database not initialized');
   const updates: { [key: string]: boolean } = {};
   updates[`messages/${messageId}/isRead`] = isRead;
   await update(ref(database), updates);
 };
 
 export const subscribeToMessages = (callback: (messages: Message[]) => void) => {
-  if (!database) {
-    console.error('Firebase database not initialized');
-    callback([]);
-    return;
-  }
-  
   onValue(getMessagesRef(), (snapshot) => {
     const data = snapshot.val();
     const messages: Message[] = data ? Object.values(data) : [];
@@ -131,17 +115,10 @@ export const subscribeToMessages = (callback: (messages: Message[]) => void) => 
 
 // User Operations
 export const updateUserStatus = async (user: User) => {
-  if (!database) throw new Error('Firebase database not initialized');
   await set(ref(database, `users/${user.id}`), user);
 };
 
 export const subscribeToUsers = (callback: (users: User[]) => void) => {
-  if (!database) {
-    console.error('Firebase database not initialized');
-    callback([]);
-    return;
-  }
-
   onValue(getUsersRef(), (snapshot) => {
     const data = snapshot.val();
     const users: User[] = data ? Object.values(data) : [];
