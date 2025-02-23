@@ -17,7 +17,8 @@ interface UserProfileProps {
 const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user.name);
-  const { setCurrentUser } = useChatStore();
+  const { setCurrentUser, currentUser } = useChatStore();
+  const isOwnProfile = currentUser?.id === user.id;
 
   const handleSave = async () => {
     try {
@@ -62,7 +63,7 @@ const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
             {user.name[0].toUpperCase()}
           </div>
           <div className="text-center space-y-1">
-            {isEditing ? (
+            {isOwnProfile && isEditing ? (
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -78,55 +79,57 @@ const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {isEditing ? (
-            <div className="flex gap-2 justify-center">
+        {isOwnProfile && (
+          <div className="space-y-4">
+            {isEditing ? (
+              <div className="flex gap-2 justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setName(user.name);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSave}>Save Changes</Button>
+              </div>
+            ) : (
               <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsEditing(false);
-                  setName(user.name);
-                }}
+                className="w-full" 
+                variant="outline"
+                onClick={() => setIsEditing(true)}
               >
-                Cancel
+                Edit Profile
               </Button>
-              <Button onClick={handleSave}>Save Changes</Button>
-            </div>
-          ) : (
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={() => setIsEditing(true)}
-            >
-              Edit Profile
-            </Button>
-          )}
+            )}
 
-          {/* Future authentication fields - currently disabled */}
-          <div className="space-y-4 pt-4 border-t border-gray-200">
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">Email</label>
-              <Input
-                type="email"
-                placeholder="Email will be added with authentication"
-                disabled
-                className="bg-gray-50"
-              />
+            {/* Future authentication fields - only shown on own profile */}
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Email</label>
+                <Input
+                  type="email"
+                  placeholder="Email will be added with authentication"
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Password</label>
+                <Input
+                  type="password"
+                  placeholder="Password will be added with authentication"
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+              <Button className="w-full" disabled>
+                Update Authentication Details
+              </Button>
             </div>
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">Password</label>
-              <Input
-                type="password"
-                placeholder="Password will be added with authentication"
-                disabled
-                className="bg-gray-50"
-              />
-            </div>
-            <Button className="w-full" disabled>
-              Update Authentication Details
-            </Button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
