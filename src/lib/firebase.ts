@@ -12,6 +12,13 @@ import {
 } from 'firebase/auth';
 import { Message, User } from './types';
 
+// Declare custom window property
+declare global {
+  interface Window {
+    activityTimeout?: NodeJS.Timeout;
+  }
+}
+
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCcWUwbXc6r1M14CNfeojVDo7SyFylvrY8",
