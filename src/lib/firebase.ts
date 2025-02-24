@@ -8,7 +8,8 @@ import {
   signInWithPopup,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  updateProfile
+  updateProfile,
+  AuthError
 } from 'firebase/auth';
 import { Message, User } from './types';
 
@@ -49,46 +50,91 @@ const database = getDatabase(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Helper function to format auth errors
+const formatAuthError = (error: AuthError): string => {
+  switch (error.code) {
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address';
+    case 'auth/user-disabled':
+      return 'This account has been disabled';
+    case 'auth/user-not-found':
+      return 'No account found with this email';
+    case 'auth/wrong-password':
+      return 'Incorrect password';
+    case 'auth/email-already-in-use':
+      return 'An account already exists with this email';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters';
+    case 'auth/popup-closed-by-user':
+      return 'Sign in was cancelled. Please try again';
+    case 'auth/cancelled-popup-request':
+      return 'Only one sign in window allowed at a time';
+    case 'auth/popup-blocked':
+      return 'Sign in popup was blocked by your browser';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection';
+    default:
+      return 'An error occurred during authentication. Please try again';
+  }
+};
+
 // Auth Operations
 export const registerWithEmail = async (email: string, password: string, name: string) => {
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  await updateProfile(userCredential.user, { displayName: name });
-  const user: User = {
-    id: userCredential.user.uid,
-    name: name,
-    email: email,
-    isOnline: true,
-    lastSeen: new Date().toISOString()
-  };
-  await updateUserStatus(user);
-  return user;
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName: name });
+    const user: User = {
+      id: userCredential.user.uid,
+      name: name,
+      email: email,
+      isOnline: true,
+      lastSeen: new Date().toISOString()
+    };
+    await updateUserStatus(user);
+    return user;
+  } catch (error: any) {
+    throw new Error(formatAuthError(error));
+  }
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
-  const user: User = {
-    id: userCredential.user.uid,
-    name: userCredential.user.displayName || 'User',
-    email: email,
-    isOnline: true,
-    lastSeen: new Date().toISOString()
-  };
-  await updateUserStatus(user);
-  return user;
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user: User = {
+      id: userCredential.user.uid,
+      name: userCredential.user.displayName || 'User',
+      email: email,
+      isOnline: true,
+      lastSeen: new Date().toISOString()
+    };
+    await updateUserStatus(user);
+    return user;
+  } catch (error: any) {
+    throw new Error(formatAuthError(error));
+  }
 };
 
 export const loginWithGoogle = async () => {
-  const result = await signInWithPopup(auth, googleProvider);
-  const user: User = {
-    id: result.user.uid,
-    name: result.user.displayName || 'User',
-    email: result.user.email || undefined,
-    photoURL: result.user.photoURL || undefined,
-    isOnline: true,
-    lastSeen: new Date().toISOString()
-  };
-  await updateUserStatus(user);
-  return user;
+  try {
+    // Configure Google provider
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    const result = await signInWithPopup(auth, googleProvider);
+    const user: User = {
+      id: result.user.uid,
+      name: result.user.displayName || 'User',
+      email: result.user.email || undefined,
+      photoURL: result.user.photoURL || undefined,
+      isOnline: true,
+      lastSeen: new Date().toISOString()
+    };
+    await updateUserStatus(user);
+    return user;
+  } catch (error: any) {
+    throw new Error(formatAuthError(error));
+  }
 };
 
 // Initialize RecaptchaVerifier
