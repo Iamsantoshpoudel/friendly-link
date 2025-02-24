@@ -1,5 +1,5 @@
 import { initializeApp, getApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, push, Database, update } from 'firebase/database';
+import { getDatabase, ref, set, onValue, push, Database, update, onDisconnect } from 'firebase/database';
 import { 
   getAuth, 
   createUserWithEmailAndPassword, 
@@ -106,18 +106,18 @@ const getUsersRef = () => {
 
 // Message Operations
 export const sendMessage = async (message: Message) => {
-  const newMessageRef = push(getMessagesRef());
+  const newMessageRef = push(ref(database, 'messages'));
   await set(newMessageRef, { ...message, id: newMessageRef.key });
 };
 
 export const updateMessageReadStatus = async (messageId: string, isRead: boolean) => {
-  const updates: { [key: string]: boolean } = {};
-  updates[`messages/${messageId}/isRead`] = isRead;
-  await update(ref(database), updates);
+  const messageRef = ref(database, `messages/${messageId}`);
+  await update(messageRef, { isRead });
 };
 
 export const subscribeToMessages = (callback: (messages: Message[]) => void) => {
-  onValue(getMessagesRef(), (snapshot) => {
+  const messagesRef = ref(database, 'messages');
+  onValue(messagesRef, (snapshot) => {
     const data = snapshot.val();
     const messages: Message[] = data ? Object.values(data) : [];
     callback(messages);
@@ -126,40 +126,71 @@ export const subscribeToMessages = (callback: (messages: Message[]) => void) => 
 
 // User Operations
 export const updateUserStatus = async (user: User) => {
-  // Add activity tracking
-  let activityTimeout: NodeJS.Timeout;
-  
-  const setOnlineStatus = (isOnline: boolean) => {
-    if (user) {
-      set(ref(database, `users/${user.id}`), {
-        ...user,
-        isOnline,
-        lastSeen: new Date().toISOString()
-      });
+  if (!user || !user.id) return;
+
+  const userStatusRef = ref(database, `users/${user.id}`);
+  const userStatusDatabaseRef = ref(database, '.info/connected');
+
+  onValue(userStatusDatabaseRef, (snapshot) => {
+    if (snapshot.val() === false) {
+      return;
     }
-  };
+
+    onDisconnect(userStatusRef)
+      .update({
+        isOnline: false,
+        lastSeen: new Date().toISOString()
+      })
+      .then(() => {
+        set(userStatusRef, {
+          ...user,
+          isOnline: true,
+          lastSeen: new Date().toISOString()
+        });
+      });
+  });
+
+  // Clear any existing activity timeout
+  if (window.activityTimeout) {
+    clearTimeout(window.activityTimeout);
+  }
+
+  // Set up activity monitoring
+  const activityEvents = ['mousedown', 'keydown', 'touchstart', 'mousemove'];
+  let timeoutId: NodeJS.Timeout;
 
   const resetActivityTimeout = () => {
-    clearTimeout(activityTimeout);
-    activityTimeout = setTimeout(() => {
-      setOnlineStatus(false);
-    }, 300000); // Set offline after 5 minutes of inactivity
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      set(userStatusRef, {
+        ...user,
+        isOnline: false,
+        lastSeen: new Date().toISOString()
+      });
+    }, 60000); // Set to offline after 1 minute of inactivity
   };
 
-  // Event listeners for user activity
-  const activityEvents = ['mousedown', 'keydown', 'touchstart', 'mousemove'];
-  
   const handleActivity = () => {
-    setOnlineStatus(true);
+    set(userStatusRef, {
+      ...user,
+      isOnline: true,
+      lastSeen: new Date().toISOString()
+    });
     resetActivityTimeout();
   };
 
   activityEvents.forEach(event => {
+    window.removeEventListener(event, handleActivity);
     window.addEventListener(event, handleActivity);
   });
 
-  // Set initial online status
-  setOnlineStatus(true);
+  // Initial status
+  set(userStatusRef, {
+    ...user,
+    isOnline: true,
+    lastSeen: new Date().toISOString()
+  });
+
   resetActivityTimeout();
 
   // Cleanup function
@@ -167,13 +198,18 @@ export const updateUserStatus = async (user: User) => {
     activityEvents.forEach(event => {
       window.removeEventListener(event, handleActivity);
     });
-    clearTimeout(activityTimeout);
-    setOnlineStatus(false);
+    if (timeoutId) clearTimeout(timeoutId);
+    set(userStatusRef, {
+      ...user,
+      isOnline: false,
+      lastSeen: new Date().toISOString()
+    });
   };
 };
 
 export const subscribeToUsers = (callback: (users: User[]) => void) => {
-  onValue(getUsersRef(), (snapshot) => {
+  const usersRef = ref(database, 'users');
+  onValue(usersRef, (snapshot) => {
     const data = snapshot.val();
     const users: User[] = data ? Object.values(data) : [];
     callback(users);

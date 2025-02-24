@@ -56,8 +56,15 @@ export const useChatStore = create<ChatState>()(
       setCurrentUser: async (user: User) => {
         try {
           saveUserToStorage(user);
-          await updateUserStatus(user);
+          const cleanup = await updateUserStatus(user);
           set({ currentUser: user });
+          
+          // Handle cleanup when component unmounts
+          window.addEventListener('beforeunload', cleanup);
+          return () => {
+            cleanup();
+            window.removeEventListener('beforeunload', cleanup);
+          };
         } catch (error) {
           console.error('Error updating user status:', error);
           set({ currentUser: user });
@@ -68,18 +75,17 @@ export const useChatStore = create<ChatState>()(
           if (user && user.id !== state.currentUser?.id) {
             saveLastActiveChatId(user.id);
             
-            // Mark messages as read
-            const updatedMessages = state.messages.map(msg => 
-              msg.senderId === user.id && msg.receiverId === state.currentUser?.id && !msg.isRead
-                ? { ...msg, isRead: true }
-                : msg
-            );
-            
-            // Update Firebase read status in background
-            updatedMessages.forEach(msg => {
-              if (msg.senderId === user.id && msg.receiverId === state.currentUser?.id && msg.isRead) {
-                updateMessageReadStatus(msg.id, true).catch(console.error);
+            // Mark messages as read immediately
+            const updatedMessages = state.messages.map(msg => {
+              if (msg.senderId === user.id && 
+                  msg.receiverId === state.currentUser?.id && 
+                  !msg.isRead) {
+                // Update read status in Firebase
+                updateMessageReadStatus(msg.id, true)
+                  .catch(console.error);
+                return { ...msg, isRead: true };
               }
+              return msg;
             });
             
             return { 
@@ -130,6 +136,7 @@ export const useChatStore = create<ChatState>()(
   )
 );
 
+// Subscribe to real-time updates
 if (typeof window !== 'undefined') {
   subscribeToMessages((messages) => {
     useChatStore.setState({ messages });
