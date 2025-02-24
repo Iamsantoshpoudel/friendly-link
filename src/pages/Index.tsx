@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../lib/store';
@@ -10,7 +9,15 @@ import {
   registerWithEmail, 
   loginWithEmail, 
   loginWithGoogle,
+  resetPassword,
 } from '../lib/firebase';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Tabs,
   TabsContent,
@@ -24,6 +31,8 @@ const Index = () => {
   const { setCurrentUser, currentUser, lastActiveChatId, setSelectedUser, onlineUsers } = useChatStore();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   
   // Email Auth States
   const [email, setEmail] = useState('');
@@ -100,6 +109,30 @@ const Index = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await resetPassword(resetEmail);
+      setIsResetDialogOpen(false);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for instructions to reset your password",
+        className: "bg-green-50 border-green-200"
+      });
+      setResetEmail('');
+    } catch (error: any) {
+      toast({
+        title: "Password Reset Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
@@ -168,6 +201,50 @@ const Index = () => {
                   disabled={isLoading}
                 />
               </div>
+              {!isRegistering && (
+                <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-sm text-gray-600 hover:underline"
+                      disabled={isLoading}
+                    >
+                      Forgot password?
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handlePasswordReset} className="space-y-4 mt-4">
+                      <InputWithIcon
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="w-full"
+                        icon={<Mail className="w-4 h-4" />}
+                        required
+                        disabled={isLoading}
+                      />
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Sending Reset Link...
+                          </div>
+                        ) : (
+                          'Send Reset Link'
+                        )}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              )}
               <Button 
                 type="submit" 
                 className="w-full"

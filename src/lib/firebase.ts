@@ -9,6 +9,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   updateProfile,
+  sendPasswordResetEmail,
   AuthError
 } from 'firebase/auth';
 import { Message, User } from './types';
@@ -73,6 +74,10 @@ const formatAuthError = (error: AuthError): string => {
       return 'Sign in popup was blocked by your browser';
     case 'auth/network-request-failed':
       return 'Network error. Please check your connection';
+    case 'auth/missing-email':
+      return 'Please enter your email address';
+    case 'auth/invalid-action-code':
+      return 'The password reset link is invalid or has expired';
     default:
       return 'An error occurred during authentication. Please try again';
   }
@@ -267,6 +272,14 @@ export const subscribeToUsers = (callback: (users: User[]) => void) => {
     const users: User[] = data ? Object.values(data) : [];
     callback(users);
   });
+};
+
+export const resetPassword = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    throw new Error(formatAuthError(error));
+  }
 };
 
 export { database };
