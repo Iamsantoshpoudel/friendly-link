@@ -6,7 +6,7 @@ import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" attribute="class">
+    <ThemeProvider defaultTheme="light" attribute="class" enableSystem={false} disableTransitionOnChange>
       <RouterProvider router={router} />
       <Toaster />
     </ThemeProvider>
