@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
@@ -75,9 +76,9 @@ const saveUserToStorage = (user: User | null) => {
     // Save to session storage
     sessionStorage.setItem('currentUser', encryptedData);
     
-    // Save to cookie with secure flags
+    // Save to cookie with secure flags and longer expiration
     const date = new Date();
-    date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days expiration
+    date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days expiration
     document.cookie = `currentUser=${encryptedData}; expires=${date.toUTCString()}; path=/; SameSite=Strict; Secure`;
   } else {
     // Clear stored data
@@ -100,7 +101,7 @@ const saveLastActiveChatId = (chatId: string | null) => {
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       currentUser: loadUserFromStorage(),
       selectedUser: null,
       messages: [],
@@ -112,10 +113,22 @@ export const useChatStore = create<ChatState>()(
           const cleanup = await updateUserStatus(user);
           set({ currentUser: user });
           
-          window.addEventListener('beforeunload', cleanup);
-          return () => {
+          // Ensure cleanup is called on page unload
+          const handleUnload = () => {
             cleanup();
-            window.removeEventListener('beforeunload', cleanup);
+            if (user) {
+              updateUserStatus({
+                ...user,
+                isOnline: false,
+                lastSeen: new Date().toISOString()
+              });
+            }
+          };
+          
+          window.addEventListener('beforeunload', handleUnload);
+          return () => {
+            handleUnload();
+            window.removeEventListener('beforeunload', handleUnload);
           };
         } catch (error) {
           console.error('Error updating user status:', error);
@@ -124,7 +137,7 @@ export const useChatStore = create<ChatState>()(
       },
       setSelectedUser: (user: User | null) => {
         set((state) => {
-          if (user && user.id !== state.currentUser?.id) {
+          if (user && state.currentUser && user.id !== state.currentUser.id) {
             saveLastActiveChatId(user.id);
             
             // Mark messages as read immediately
@@ -156,7 +169,7 @@ export const useChatStore = create<ChatState>()(
       },
       addMessage: async (message: Message) => {
         set((state) => {
-          // Check for duplicate messages
+          // Check for duplicate messages with more reliable criteria
           const messageExists = state.messages.some(msg => 
             msg.id === message.id || 
             (msg.senderId === message.senderId && 
@@ -182,7 +195,8 @@ export const useChatStore = create<ChatState>()(
     {
       name: 'chat-storage',
       partialize: (state) => ({ 
-        messages: state.messages
+        messages: state.messages,
+        lastActiveChatId: state.lastActiveChatId
       }),
     }
   )
@@ -191,7 +205,19 @@ export const useChatStore = create<ChatState>()(
 // Subscribe to real-time updates
 if (typeof window !== 'undefined') {
   subscribeToMessages((messages) => {
-    useChatStore.setState({ messages });
+    const currentState = useChatStore.getState();
+    const updatedMessages = messages.map(msg => {
+      // If the message is in the current chat and unread, mark it as read
+      if (msg.senderId === currentState.selectedUser?.id && 
+          msg.receiverId === currentState.currentUser?.id && 
+          !msg.isRead) {
+        updateMessageReadStatus(msg.id, true)
+          .catch(console.error);
+        return { ...msg, isRead: true };
+      }
+      return msg;
+    });
+    useChatStore.setState({ messages: updatedMessages });
   });
 
   subscribeToUsers((users) => {
