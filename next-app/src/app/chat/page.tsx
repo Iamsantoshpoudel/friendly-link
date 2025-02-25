@@ -1,28 +1,24 @@
-
 'use client';
 
-import { useEffect, useState } from 'react';
-import { redirect } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import UserList from '@/components/UserList';
 import ChatWindow from '@/components/ChatWindow';
 import UserProfile from '@/components/UserProfile';
 import { useChatStore } from '@/lib/store';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
-import { useParams, useRouter } from 'next/navigation';
 
 export default function ChatPage() {
   const { currentUser, selectedUser, setSelectedUser, onlineUsers } = useChatStore();
   const [showProfile, setShowProfile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
-  const params = useParams();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Protect the route
   useEffect(() => {
     if (isMounted && !currentUser) {
       router.replace('/');

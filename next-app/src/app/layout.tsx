@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'Chat App',
-  description: 'Real-time chat application built with Next.js',
+  description: 'Real-time chat application',
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="light" attribute="class" enableSystem={false} disableTransitionOnChange>
+        <ThemeProvider defaultTheme="light" attribute="class">
           {children}
           <Toaster />
         </ThemeProvider>
