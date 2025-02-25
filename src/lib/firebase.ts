@@ -10,18 +10,20 @@ import {
   signInWithPhoneNumber,
   updateProfile,
   sendPasswordResetEmail,
-  AuthError
+  AuthError,
+  updateEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  updatePassword
 } from 'firebase/auth';
 import { Message, User } from './types';
 
-// Declare custom window property
 declare global {
   interface Window {
     activityTimeout?: NodeJS.Timeout;
   }
 }
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCcWUwbXc6r1M14CNfeojVDo7SyFylvrY8",
   authDomain: "website-database-b5b62.firebaseapp.com",
@@ -33,7 +35,6 @@ const firebaseConfig = {
   measurementId: "G-4F1W5ZS53S"
 };
 
-// Initialize Firebase with error handling
 let app;
 try {
   app = initializeApp(firebaseConfig);
@@ -46,12 +47,10 @@ try {
   app = getApp(); // Get the already initialized app
 }
 
-// Initialize Firebase services
 const database = getDatabase(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Helper function to format auth errors
 const formatAuthError = (error: AuthError): string => {
   switch (error.code) {
     case 'auth/invalid-email':
@@ -83,7 +82,6 @@ const formatAuthError = (error: AuthError): string => {
   }
 };
 
-// Auth Operations
 export const registerWithEmail = async (email: string, password: string, name: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -121,7 +119,6 @@ export const loginWithEmail = async (email: string, password: string) => {
 
 export const loginWithGoogle = async () => {
   try {
-    // Configure Google provider
     googleProvider.setCustomParameters({
       prompt: 'select_account'
     });
@@ -142,7 +139,6 @@ export const loginWithGoogle = async () => {
   }
 };
 
-// Initialize RecaptchaVerifier
 export const initRecaptcha = (buttonId: string) => {
   return new RecaptchaVerifier(auth, buttonId, {
     size: 'invisible'
@@ -153,7 +149,6 @@ export const loginWithPhone = async (phoneNumber: string, recaptchaVerifier: Rec
   return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
 };
 
-// Database References
 const getMessagesRef = () => {
   return ref(database, 'messages');
 };
@@ -162,7 +157,6 @@ const getUsersRef = () => {
   return ref(database, 'users');
 };
 
-// Message Operations
 export const sendMessage = async (message: Message) => {
   const newMessageRef = push(ref(database, 'messages'));
   await set(newMessageRef, { ...message, id: newMessageRef.key });
@@ -182,7 +176,6 @@ export const subscribeToMessages = (callback: (messages: Message[]) => void) => 
   });
 };
 
-// User Operations
 export const updateUserStatus = async (user: User) => {
   if (!user || !user.id) return;
 
@@ -208,12 +201,10 @@ export const updateUserStatus = async (user: User) => {
       });
   });
 
-  // Clear any existing activity timeout
   if (window.activityTimeout) {
     clearTimeout(window.activityTimeout);
   }
 
-  // Set up activity monitoring
   const activityEvents = ['mousedown', 'keydown', 'touchstart', 'mousemove'];
   let timeoutId: NodeJS.Timeout;
 
@@ -225,7 +216,7 @@ export const updateUserStatus = async (user: User) => {
         isOnline: false,
         lastSeen: new Date().toISOString()
       });
-    }, 60000); // Set to offline after 1 minute of inactivity
+    }, 60000);
   };
 
   const handleActivity = () => {
@@ -242,7 +233,6 @@ export const updateUserStatus = async (user: User) => {
     window.addEventListener(event, handleActivity);
   });
 
-  // Initial status
   set(userStatusRef, {
     ...user,
     isOnline: true,
@@ -251,7 +241,6 @@ export const updateUserStatus = async (user: User) => {
 
   resetActivityTimeout();
 
-  // Cleanup function
   return () => {
     activityEvents.forEach(event => {
       window.removeEventListener(event, handleActivity);
@@ -277,6 +266,34 @@ export const subscribeToUsers = (callback: (users: User[]) => void) => {
 export const resetPassword = async (email: string) => {
   try {
     await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    throw new Error(formatAuthError(error));
+  }
+};
+
+export const updateUserEmail = async (newEmail: string, currentPassword: string) => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error('No authenticated user found');
+
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+    
+    await updateEmail(user, newEmail);
+  } catch (error: any) {
+    throw new Error(formatAuthError(error));
+  }
+};
+
+export const updateUserPassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error('No authenticated user found');
+
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+    
+    await updatePassword(user, newPassword);
   } catch (error: any) {
     throw new Error(formatAuthError(error));
   }

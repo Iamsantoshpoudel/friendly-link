@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import Chat from './pages/Chat';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -11,15 +12,27 @@ export const router = createBrowserRouter([
   },
   {
     path: '/chat',
-    element: <Chat />,
+    element: (
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/chat/:id',
-    element: <Chat />,
+    element: (
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/chat/profile',
-    element: <Chat />,
+    element: (
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '*',

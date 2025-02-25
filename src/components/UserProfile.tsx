@@ -5,8 +5,9 @@ import { ChevronLeft } from 'lucide-react';
 import { Input } from './ui/input';
 import { useState } from 'react';
 import { useChatStore } from '@/lib/store';
-import { updateUserStatus } from '@/lib/firebase';
+import { updateUserStatus, updateUserEmail, updateUserPassword } from '@/lib/firebase';
 import { toast } from './ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfileProps {
   user: User;
@@ -15,31 +16,58 @@ interface UserProfileProps {
 }
 
 const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const { setCurrentUser, currentUser } = useChatStore();
   const isOwnProfile = currentUser?.id === user.id;
 
   const handleSave = async () => {
+    if (!isOwnProfile) return;
+    setIsLoading(true);
+
     try {
       const updatedUser = {
         ...user,
-        name: name.trim()
+        name: name.trim(),
+        email: email.trim()
       };
 
+      // Update user profile information
       await updateUserStatus(updatedUser);
       setCurrentUser(updatedUser);
+
+      // Update email if changed
+      if (email !== user.email && currentPassword) {
+        await updateUserEmail(email, currentPassword);
+      }
+
+      // Update password if provided
+      if (newPassword && currentPassword) {
+        await updateUserPassword(currentPassword, newPassword);
+      }
+
       setIsEditing(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully."
+        description: "Your profile has been updated successfully.",
+        className: "bg-green-50 border-green-200"
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,6 +97,7 @@ const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
                 onChange={(e) => setName(e.target.value)}
                 className="text-center"
                 placeholder="Enter your name"
+                disabled={isLoading}
               />
             ) : (
               <h2 className="text-xl font-semibold">{user.name}</h2>
@@ -82,17 +111,58 @@ const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
         {isOwnProfile && (
           <div className="space-y-4">
             {isEditing ? (
-              <div className="flex gap-2 justify-center">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsEditing(false);
-                    setName(user.name);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>Save Changes</Button>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Your email address"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Current Password</label>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">New Password</label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (optional)"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditing(false);
+                      setName(user.name);
+                      setEmail(user.email || '');
+                      setCurrentPassword('');
+                      setNewPassword('');
+                    }}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={isLoading || (!currentPassword && (email !== user.email || newPassword))}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
               </div>
             ) : (
               <Button 
@@ -103,31 +173,6 @@ const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
                 Edit Profile
               </Button>
             )}
-
-            {/* Future authentication fields - only shown on own profile */}
-            <div className="space-y-4 pt-4 border-t border-gray-200">
-              <div>
-                <label className="text-sm text-gray-500 mb-1 block">Email</label>
-                <Input
-                  type="email"
-                  placeholder="Email will be added with authentication"
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-500 mb-1 block">Password</label>
-                <Input
-                  type="password"
-                  placeholder="Password will be added with authentication"
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
-              <Button className="w-full" disabled>
-                Update Authentication Details
-              </Button>
-            </div>
           </div>
         )}
       </div>
