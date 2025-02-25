@@ -4,7 +4,7 @@ import { useChatStore } from '../lib/store';
 import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { motion } from 'framer-motion';
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { 
   registerWithEmail, 
   loginWithEmail, 
@@ -41,22 +41,18 @@ const Index = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   
   useEffect(() => {
-    const handleRedirect = async () => {
-      if (currentUser && lastActiveChatId && !isRedirecting) {
-        setIsRedirecting(true);
+    // Check for existing session
+    if (currentUser) {
+      setIsRedirecting(true);
+      if (lastActiveChatId) {
         const lastActiveUser = onlineUsers.find(user => user.id === lastActiveChatId);
         if (lastActiveUser) {
-          await setSelectedUser(lastActiveUser);
+          setSelectedUser(lastActiveUser);
         }
-        navigate('/chat', { replace: true });
-      } else if (currentUser && !isRedirecting) {
-        setIsRedirecting(true);
-        navigate('/chat', { replace: true });
       }
-    };
-
-    handleRedirect();
-  }, [currentUser, lastActiveChatId, navigate, onlineUsers, setSelectedUser, isRedirecting]);
+      navigate('/chat', { replace: true });
+    }
+  }, [currentUser, lastActiveChatId, navigate, onlineUsers, setSelectedUser]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();

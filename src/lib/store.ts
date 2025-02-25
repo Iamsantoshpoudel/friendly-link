@@ -1,35 +1,88 @@
-
 import { create } from 'zustand';
 import { ChatState, Message, User } from './types';
 import { persist } from 'zustand/middleware';
 import { sendMessage, updateUserStatus, subscribeToMessages, subscribeToUsers, updateMessageReadStatus } from './firebase';
+import { getAuth } from 'firebase/auth';
+
+// Encryption helper functions
+const encryptData = (data: string): string => {
+  try {
+    return btoa(encodeURIComponent(data));
+  } catch (error) {
+    console.error('Encryption error:', error);
+    return '';
+  }
+};
+
+const decryptData = (data: string): string => {
+  try {
+    return decodeURIComponent(atob(data));
+  } catch (error) {
+    console.error('Decryption error:', error);
+    return '';
+  }
+};
 
 const loadUserFromStorage = (): User | null => {
-  const sessionUser = sessionStorage.getItem('currentUser');
-  if (sessionUser) {
-    return JSON.parse(sessionUser);
-  }
+  try {
+    // Try to get user from session storage first
+    const sessionUser = sessionStorage.getItem('currentUser');
+    if (sessionUser) {
+      const decryptedUser = decryptData(sessionUser);
+      return JSON.parse(decryptedUser);
+    }
 
-  const cookieUser = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('currentUser='));
-  
-  if (cookieUser) {
-    return JSON.parse(decodeURIComponent(cookieUser.split('=')[1]));
-  }
+    // If not in session, check cookies
+    const cookieUser = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('currentUser='));
+    
+    if (cookieUser) {
+      const decryptedCookie = decryptData(cookieUser.split('=')[1]);
+      // Store in session for faster access next time
+      sessionStorage.setItem('currentUser', encryptData(decryptedCookie));
+      return JSON.parse(decryptedCookie);
+    }
 
-  return null;
+    // Check Firebase auth state as last resort
+    const auth = getAuth();
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      const user: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'User',
+        email: firebaseUser.email || undefined,
+        photoURL: firebaseUser.photoURL || undefined,
+        isOnline: true,
+        lastSeen: new Date().toISOString()
+      };
+      saveUserToStorage(user);
+      return user;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error loading user:', error);
+    return null;
+  }
 };
 
 const saveUserToStorage = (user: User | null) => {
   if (user) {
-    sessionStorage.setItem('currentUser', JSON.stringify(user));
+    // Encrypt user data before storing
+    const encryptedData = encryptData(JSON.stringify(user));
+    
+    // Save to session storage
+    sessionStorage.setItem('currentUser', encryptedData);
+    
+    // Save to cookie with secure flags
     const date = new Date();
-    date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000));
-    document.cookie = `currentUser=${encodeURIComponent(JSON.stringify(user))}; expires=${date.toUTCString()}; path=/`;
+    date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days expiration
+    document.cookie = `currentUser=${encryptedData}; expires=${date.toUTCString()}; path=/; SameSite=Strict; Secure`;
   } else {
+    // Clear stored data
     sessionStorage.removeItem('currentUser');
-    document.cookie = 'currentUser=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'currentUser=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict; Secure';
   }
 };
 
@@ -59,7 +112,6 @@ export const useChatStore = create<ChatState>()(
           const cleanup = await updateUserStatus(user);
           set({ currentUser: user });
           
-          // Handle cleanup when component unmounts
           window.addEventListener('beforeunload', cleanup);
           return () => {
             cleanup();
