@@ -6,7 +6,7 @@ import { Input } from './ui/input';
 import { useState } from 'react';
 import { useChatStore } from '@/lib/store';
 import { updateUserStatus, updateUserEmail, updateUserPassword } from '@/lib/firebase';
-import { toast } from './ui/use-toast';
+import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 
 interface UserProfileProps {
@@ -158,7 +158,7 @@ const UserProfile = ({ user, showBackButton, onBack }: UserProfileProps) => {
                   </Button>
                   <Button 
                     onClick={handleSave}
-                    disabled={isLoading || (!currentPassword && (email !== user.email || newPassword))}
+                    disabled={isLoading || Boolean(!currentPassword && (email !== user.email || newPassword))}
                   >
                     {isLoading ? 'Saving...' : 'Save Changes'}
                   </Button>
