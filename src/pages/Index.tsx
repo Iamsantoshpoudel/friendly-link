@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../lib/store';
@@ -19,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import Logo from '../assets/img/Logo.svg';
 
 const demoMessages = [
   { id: 1, text: "Hey! Have you checked out the new PoudelX chat app?", sender: "user1" },
@@ -51,12 +53,12 @@ const Index = () => {
   const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
-    // Animate messages
+    // Animate messages with slower timing
     const interval = setInterval(() => {
       setVisibleMessages(prev => 
         prev < demoMessages.length ? prev + 1 : prev
       );
-    }, 2000); // Show new message every 2 seconds
+    }, 3500); // Increased to 3.5 seconds per message
 
     return () => clearInterval(interval);
   }, []);
@@ -151,8 +153,8 @@ const Index = () => {
 
   if (isRedirecting) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="flex items-center gap-2 text-white">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2 text-gray-700">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>Redirecting...</span>
         </div>
@@ -161,18 +163,16 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
-      {/* Chat Demo Section */}
-      <div className="flex-1 flex flex-col items-center p-4 pt-20 overflow-hidden">
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold mb-8"
-        >
-          Privacy in your pocket.
-        </motion.h1>
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Logo and Chat Demo Section */}
+      <div className="flex-1 flex flex-col items-center p-4 pt-10 overflow-hidden">
+        <img 
+          src={Logo} 
+          alt="PoudelX Logo" 
+          className="w-24 h-24 mb-8"
+        />
         
-        <div className="w-full max-w-md space-y-4 mb-8">
+        <div className="w-full max-w-[300px] sm:max-w-md space-y-3 mb-8">
           <AnimatePresence>
             {demoMessages.slice(0, visibleMessages).map((message) => (
               <motion.div
@@ -183,13 +183,13 @@ const Index = () => {
                 className={`flex ${message.sender === 'user1' ? 'justify-start' : 'justify-end'}`}
               >
                 <div 
-                  className={`max-w-[80%] p-3 rounded-2xl ${
+                  className={`max-w-[80%] p-2 text-xs sm:text-sm rounded-2xl ${
                     message.sender === 'user1' 
-                      ? 'bg-gray-800 rounded-bl-none' 
-                      : 'bg-green-500 rounded-br-none'
+                      ? 'bg-gray-100 text-gray-800 rounded-bl-none' 
+                      : 'bg-green-500 text-white rounded-br-none'
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
+                  <p>{message.text}</p>
                 </div>
               </motion.div>
             ))}
@@ -197,7 +197,7 @@ const Index = () => {
         </div>
 
         {/* Auth Buttons */}
-        <div className="w-full max-w-md space-y-4">
+        <div className="w-full max-w-[300px] sm:max-w-md space-y-4">
           <Button 
             onClick={() => setIsRegistering(true)}
             className="w-full h-12 bg-green-500 hover:bg-green-600 text-white rounded-full"
@@ -215,7 +215,7 @@ const Index = () => {
       </div>
 
       {/* Terms and Privacy */}
-      <div className="text-center text-sm text-gray-400 p-4">
+      <div className="text-center text-sm text-gray-500 p-4">
         By using this service, you agree to our{' '}
         <button className="text-green-500 hover:underline">Terms of Service</button>
         {' '}and{' '}
