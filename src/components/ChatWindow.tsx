@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/store';
 import { Message } from '@/lib/types';
@@ -63,10 +64,10 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
     (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id)
   );
 
-  // Get last sent message
+  // Get last sent message by current user
   const lastSentMessage = [...filteredMessages]
-    .filter(msg => msg.senderId === currentUser.id)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    .reverse()
+    .find(msg => msg.senderId === currentUser.id);
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -125,7 +126,6 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
             const isSender = message.senderId === currentUser.id;
             const showAvatar = index === 0 || 
                              filteredMessages[index - 1].senderId !== message.senderId;
-            const isLastSentMessage = isSender && message.id === lastSentMessage?.id;
             
             return (
               <motion.div
@@ -157,8 +157,8 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                         })}
                       </div>
                     </div>
-                    {/* Show read receipt only for sender's last message when read */}
-                    {isLastSentMessage && message.isRead && (
+                    {/* Show read receipt for sender's messages */}
+                    {isSender && message.isRead && message.id === lastSentMessage?.id && (
                       <div className="absolute -bottom-3 right-0">
                         <div className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
                           {selectedUser.photoURL ? (
