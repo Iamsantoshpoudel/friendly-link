@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/store';
 import { Message } from '@/lib/types';
@@ -64,15 +63,10 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
     (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id)
   );
 
-  // Get last messages for both users
-  const lastMessages = filteredMessages.reduce((acc, msg) => {
-    if (msg.senderId === currentUser.id && (!acc.lastSentMessage || new Date(msg.timestamp) > new Date(acc.lastSentMessage.timestamp))) {
-      acc.lastSentMessage = msg;
-    } else if (msg.senderId === selectedUser.id && (!acc.lastReceivedMessage || new Date(msg.timestamp) > new Date(acc.lastReceivedMessage.timestamp))) {
-      acc.lastReceivedMessage = msg;
-    }
-    return acc;
-  }, { lastSentMessage: null, lastReceivedMessage: null } as { lastSentMessage: Message | null, lastReceivedMessage: Message | null });
+  // Get last sent message
+  const lastSentMessage = [...filteredMessages]
+    .filter(msg => msg.senderId === currentUser.id)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -131,9 +125,7 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
             const isSender = message.senderId === currentUser.id;
             const showAvatar = index === 0 || 
                              filteredMessages[index - 1].senderId !== message.senderId;
-            const isLastMessage = isSender ? 
-              message.id === lastMessages.lastSentMessage?.id :
-              message.id === lastMessages.lastReceivedMessage?.id;
+            const isLastSentMessage = isSender && message.id === lastSentMessage?.id;
             
             return (
               <motion.div
@@ -165,34 +157,20 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                         })}
                       </div>
                     </div>
-                    {/* Show read receipt for both users' last messages */}
-                    {message.isRead && isLastMessage && (
+                    {/* Show read receipt only for sender's last message when read */}
+                    {isLastSentMessage && message.isRead && (
                       <div className="absolute -bottom-3 right-0">
                         <div className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
-                          {isSender ? (
-                            selectedUser.photoURL ? (
-                              <img 
-                                src={selectedUser.photoURL} 
-                                alt={selectedUser.name} 
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-[8px] font-medium">
-                                {selectedUser.name[0].toUpperCase()}
-                              </span>
-                            )
+                          {selectedUser.photoURL ? (
+                            <img 
+                              src={selectedUser.photoURL} 
+                              alt={selectedUser.name} 
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            currentUser.photoURL ? (
-                              <img 
-                                src={currentUser.photoURL} 
-                                alt={currentUser.name} 
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-[8px] font-medium">
-                                {currentUser.name[0].toUpperCase()}
-                              </span>
-                            )
+                            <span className="text-[8px] font-medium">
+                              {selectedUser.name[0].toUpperCase()}
+                            </span>
                           )}
                         </div>
                       </div>
