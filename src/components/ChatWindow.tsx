@@ -64,6 +64,11 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
     (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id)
   );
 
+  // Get last sent message by current user
+  const lastSentMessage = [...filteredMessages]
+    .reverse()
+    .find(msg => msg.senderId === currentUser.id);
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
@@ -138,18 +143,38 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                       </div>
                     </div>
                   )}
-                  <div className={`group relative rounded-2xl px-4 py-2 ${
-                    isSender
-                      ? 'bg-purple-600 text-white rounded-br-none'
-                      : 'bg-white text-gray-900 rounded-bl-none shadow-sm'
-                  }`}>
-                    <p className="break-words text-sm">{message.content}</p>
-                    <div className={`text-[10px] ${isSender ? 'text-purple-200' : 'text-gray-500'} mt-1`}>
-                      {new Date(message.timestamp).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+                  <div className="group relative">
+                    <div className={`rounded-2xl px-4 py-2 ${
+                      isSender
+                        ? 'bg-purple-600 text-white rounded-br-none'
+                        : 'bg-white text-gray-900 rounded-bl-none shadow-sm'
+                    }`}>
+                      <p className="break-words text-sm">{message.content}</p>
+                      <div className={`text-[10px] ${isSender ? 'text-purple-200' : 'text-gray-500'} mt-1`}>
+                        {new Date(message.timestamp).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
                     </div>
+                    {/* Show read receipt for sender's messages */}
+                    {isSender && message.isRead && message.id === lastSentMessage?.id && (
+                      <div className="absolute -bottom-3 right-0">
+                        <div className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
+                          {selectedUser.photoURL ? (
+                            <img 
+                              src={selectedUser.photoURL} 
+                              alt={selectedUser.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[8px] font-medium">
+                              {selectedUser.name[0].toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
