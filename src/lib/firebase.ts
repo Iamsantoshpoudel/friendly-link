@@ -169,69 +169,96 @@ export const updateMessageReadStatus = async (messageId: string, isRead: boolean
 
 export const subscribeToMessages = (callback: (messages: Message[]) => void) => {
   const messagesRef = ref(database, 'messages');
-  return onValue(messagesRef, (snapshot) => {
+  onValue(messagesRef, (snapshot) => {
     const data = snapshot.val();
     const messages: Message[] = data ? Object.values(data) : [];
-    messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     callback(messages);
   });
 };
 
 export const updateUserStatus = async (user: User) => {
-  if (!user || !user.id) return () => {};
+  if (!user || !user.id) return;
 
   const userStatusRef = ref(database, `users/${user.id}`);
   const userStatusDatabaseRef = ref(database, '.info/connected');
-  let onDisconnectRef: any;
 
-  return new Promise<() => void>((resolve) => {
-    const onConnected = onValue(userStatusDatabaseRef, async (snapshot) => {
-      if (snapshot.val() === false) {
-        return;
-      }
+  onValue(userStatusDatabaseRef, (snapshot) => {
+    if (snapshot.val() === false) {
+      return;
+    }
 
-      if (onDisconnectRef) {
-        await onDisconnectRef.cancel();
-      }
-
-      onDisconnectRef = onDisconnect(userStatusRef);
-      await onDisconnectRef.update({
+    onDisconnect(userStatusRef)
+      .update({
         isOnline: false,
         lastSeen: new Date().toISOString()
-      });
-
-      await set(userStatusRef, {
-        ...user,
-        isOnline: true,
-        lastSeen: new Date().toISOString()
-      });
-
-      resolve(() => {
-        onConnected();
-        if (onDisconnectRef) {
-          onDisconnectRef.cancel();
-        }
-        return set(userStatusRef, {
+      })
+      .then(() => {
+        set(userStatusRef, {
           ...user,
-          isOnline: false,
+          isOnline: true,
           lastSeen: new Date().toISOString()
         });
       });
-    });
   });
+
+  if (window.activityTimeout) {
+    clearTimeout(window.activityTimeout);
+  }
+
+  const activityEvents = ['mousedown', 'keydown', 'touchstart', 'mousemove'];
+  let timeoutId: NodeJS.Timeout;
+
+  const resetActivityTimeout = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      set(userStatusRef, {
+        ...user,
+        isOnline: false,
+        lastSeen: new Date().toISOString()
+      });
+    }, 60000);
+  };
+
+  const handleActivity = () => {
+    set(userStatusRef, {
+      ...user,
+      isOnline: true,
+      lastSeen: new Date().toISOString()
+    });
+    resetActivityTimeout();
+  };
+
+  activityEvents.forEach(event => {
+    window.removeEventListener(event, handleActivity);
+    window.addEventListener(event, handleActivity);
+  });
+
+  set(userStatusRef, {
+    ...user,
+    isOnline: true,
+    lastSeen: new Date().toISOString()
+  });
+
+  resetActivityTimeout();
+
+  return () => {
+    activityEvents.forEach(event => {
+      window.removeEventListener(event, handleActivity);
+    });
+    if (timeoutId) clearTimeout(timeoutId);
+    set(userStatusRef, {
+      ...user,
+      isOnline: false,
+      lastSeen: new Date().toISOString()
+    });
+  };
 };
 
 export const subscribeToUsers = (callback: (users: User[]) => void) => {
   const usersRef = ref(database, 'users');
-  return onValue(usersRef, (snapshot) => {
+  onValue(usersRef, (snapshot) => {
     const data = snapshot.val();
     const users: User[] = data ? Object.values(data) : [];
-    users.sort((a, b) => {
-      if (a.isOnline === b.isOnline) {
-        return a.name.localeCompare(b.name);
-      }
-      return a.isOnline ? -1 : 1;
-    });
     callback(users);
   });
 };
