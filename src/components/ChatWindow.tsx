@@ -64,10 +64,15 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
     (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id)
   );
 
-  // Get last sent message by current user
-  const lastSentMessage = [...filteredMessages]
-    .reverse()
-    .find(msg => msg.senderId === currentUser.id);
+  // Get last messages for both users
+  const lastMessages = filteredMessages.reduce((acc, msg) => {
+    if (msg.senderId === currentUser.id && (!acc.lastSentMessage || new Date(msg.timestamp) > new Date(acc.lastSentMessage.timestamp))) {
+      acc.lastSentMessage = msg;
+    } else if (msg.senderId === selectedUser.id && (!acc.lastReceivedMessage || new Date(msg.timestamp) > new Date(acc.lastReceivedMessage.timestamp))) {
+      acc.lastReceivedMessage = msg;
+    }
+    return acc;
+  }, { lastSentMessage: null, lastReceivedMessage: null } as { lastSentMessage: Message | null, lastReceivedMessage: Message | null });
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -126,6 +131,9 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
             const isSender = message.senderId === currentUser.id;
             const showAvatar = index === 0 || 
                              filteredMessages[index - 1].senderId !== message.senderId;
+            const isLastMessage = isSender ? 
+              message.id === lastMessages.lastSentMessage?.id :
+              message.id === lastMessages.lastReceivedMessage?.id;
             
             return (
               <motion.div
@@ -157,20 +165,34 @@ const ChatWindow = ({ showBackButton, onBack }: ChatWindowProps) => {
                         })}
                       </div>
                     </div>
-                    {/* Show read receipt for sender's messages */}
-                    {isSender && message.isRead && message.id === lastSentMessage?.id && (
+                    {/* Show read receipt for both users' last messages */}
+                    {message.isRead && isLastMessage && (
                       <div className="absolute -bottom-3 right-0">
                         <div className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
-                          {selectedUser.photoURL ? (
-                            <img 
-                              src={selectedUser.photoURL} 
-                              alt={selectedUser.name} 
-                              className="w-full h-full object-cover"
-                            />
+                          {isSender ? (
+                            selectedUser.photoURL ? (
+                              <img 
+                                src={selectedUser.photoURL} 
+                                alt={selectedUser.name} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-[8px] font-medium">
+                                {selectedUser.name[0].toUpperCase()}
+                              </span>
+                            )
                           ) : (
-                            <span className="text-[8px] font-medium">
-                              {selectedUser.name[0].toUpperCase()}
-                            </span>
+                            currentUser.photoURL ? (
+                              <img 
+                                src={currentUser.photoURL} 
+                                alt={currentUser.name} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-[8px] font-medium">
+                                {currentUser.name[0].toUpperCase()}
+                              </span>
+                            )
                           )}
                         </div>
                       </div>
